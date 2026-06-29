@@ -1,9 +1,10 @@
 /**
  * SANCTUARY CONFIGURATION
  *
- * Step 1: Open setup.html in your browser to generate your password hash
- * Step 2: Paste the hash below, replacing REPLACE_WITH_YOUR_PASSWORD_HASH
- * Step 3: Customize the fields below as you like
+ * Step 1: Open setup.html in your browser to generate your password hash.
+ * Step 2: Paste the hash below.
+ * Step 3: For cross-device sync, fill in the Firebase section.
+ *         See setup.html → "Firebase Setup" for step-by-step instructions.
  */
 const CONFIG = {
 
@@ -17,8 +18,35 @@ const CONFIG = {
     welcomeMessage: 'Everything we keep, just for us.',
 
     // Path to your background image (place your photo in the assets/ folder)
-    // Leave empty ('') for a solid-color background.
-    // Example: 'assets/background.jpg'  or  'assets/our-photo.png'
+    // Leave empty ('') for a solid-colour background.
     backgroundImage: '',
+
+    // ── Firebase (cross-device sync) ─────────────────────────────────────────
+    // Leave all values empty to use local-only storage (files stay on this device only).
+    // Fill these in to sync uploaded files across all your devices.
+    //
+    // How to get these values:
+    //   1. Go to https://console.firebase.google.com → create a project
+    //   2. Enable Firestore Database (Start in production mode)
+    //   3. Enable Storage (Start in production mode)
+    //   4. Enable Authentication → Sign-in method → Email/Password
+    //   5. Authentication → Users → Add user → enter any email + password
+    //   6. Project Settings → General → Your apps → Add web app → copy the config below
+    //   7. Set Firestore rules (see setup.html for the exact rules to paste)
+    //   8. Set Storage rules (see setup.html)
+    //
+
+    firebaseConfig: {
+        apiKey:            'AIzaSyBvjz6w8cJ_sb-ghqrphrhF0cTxx5UzWFM',
+        authDomain:        'sanctuaryvalt.firebaseapp.com',
+        projectId:         'sanctuaryvalt',
+        storageBucket:     'sanctuaryvalt.firebasestorage.app',
+        messagingSenderId: '649315030511',
+        appId:             '1:649315030511:web:ffdbcbd252c3e8f803921a'
+    },
+
+    // The email + password of the Firebase Auth user you created in step 5 above
+    firebaseEmail:    'sanctuaryvalt@gmail.com',
+    firebasePassword: 'GWsc9XeKjfXz6cXLUq3EJuZ9VSu1'
 
 };

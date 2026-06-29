@@ -27,6 +27,24 @@ async function initVault() {
         }
     } catch {}
 
+    // Connect to Firebase and pull latest metadata (enables cross-device sync)
+    if (typeof initFirebase === 'function') {
+        const fbOk = await initFirebase().catch(() => false);
+        if (fbOk) {
+            const cloudMeta = await fbPullMeta().catch(() => null);
+            if (cloudMeta) {
+                // Another device uploaded something — use the cloud version
+                localStorage.setItem('sanctuary-vault', JSON.stringify(cloudMeta));
+            } else {
+                // First time connecting to Firebase — push existing local data up
+                const localMeta = getVaultMeta();
+                if (localMeta.documents.length || localMeta.folders.length) {
+                    fbPushMeta(localMeta).catch(() => {});
+                }
+            }
+        }
+    }
+
     vaultMeta = getVaultMeta();
 
     // Override background with vault image if user has set one

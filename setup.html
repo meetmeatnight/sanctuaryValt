@@ -3,312 +3,807 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Setup — Generate Password Hash</title>
+    <title>Setup — Our Sanctuary</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌹</text></svg>">
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
+        [hidden] { display: none !important; }
+
+        :root {
+            --bg:         #0B0610;
+            --surface:    #15091A;
+            --surface-2:  #1C0D20;
+            --border:     rgba(192,136,80,0.18);
+            --border-hi:  rgba(192,136,80,0.42);
+            --amber:      #C08850;
+            --amber-dim:  #8A6038;
+            --rose:       #8B4255;
+            --rose-deep:  #5A2535;
+            --rose-light: #B87088;
+            --cream:      #EEE0D0;
+            --muted:      #907060;
+            --code-bg:    #080410;
+            --error:      #E07070;
+            --ok:         #70B080;
+
+            --f-serif:  'Palatino Linotype', Palatino, 'Book Antiqua', Georgia, serif;
+            --f-sans:   -apple-system, 'Helvetica Neue', Arial, sans-serif;
+            --f-mono:   'Courier New', Courier, monospace;
+        }
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        html { font-size: 16px; scroll-behavior: smooth; }
+
         body {
-            font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif;
-            background: #0f0a12;
-            color: #e8ddd0;
+            background: var(--bg);
+            color: var(--cream);
+            font-family: var(--f-sans);
+            line-height: 1.65;
             min-height: 100vh;
+        }
+
+        /* ── Background glow ───────────────────────────── */
+        .bg-layer {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            background:
+                radial-gradient(ellipse at 50% 0%, rgba(139,66,85,0.13) 0%, transparent 60%),
+                radial-gradient(ellipse at 80% 80%, rgba(90,37,53,0.08) 0%, transparent 50%);
+            pointer-events: none;
+        }
+
+        /* ── Header ────────────────────────────────────── */
+        .page-header {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1.1rem 2rem;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            background: rgba(11,6,16,0.7);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+
+        .header-brand {
+            display: flex;
+            align-items: center;
+            gap: 0.55rem;
+            font-family: var(--f-serif);
+            font-size: 0.9rem;
+            letter-spacing: 0.07em;
+            color: var(--cream);
+        }
+
+        .header-ornament { color: var(--amber); font-size: 1rem; }
+
+        .header-tag {
+            font-family: var(--f-sans);
+            font-size: 0.65rem;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: var(--muted);
+            background: rgba(192,136,80,0.08);
+            border: 1px solid var(--border);
+            padding: 0.2rem 0.65rem;
+        }
+
+        /* ── Main layout ───────────────────────────────── */
+        main {
+            position: relative;
+            z-index: 1;
+            max-width: 560px;
+            margin: 0 auto;
+            padding: 3rem 1.5rem 5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+        }
+
+        /* ── Local-only warning strip ──────────────────── */
+        .local-warning {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.7rem;
+            background: rgba(192,136,80,0.06);
+            border: 1px solid rgba(192,136,80,0.28);
+            border-left: 3px solid var(--amber);
+            padding: 0.85rem 1rem;
+            margin-bottom: 2.5rem;
+            font-size: 0.78rem;
+            color: var(--amber-dim);
+            line-height: 1.55;
+        }
+
+        .local-warning strong { color: var(--amber); font-weight: 600; }
+
+        /* ── Section card ──────────────────────────────── */
+        .section-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            padding: 2rem 2rem 2.25rem;
+            box-shadow: 0 24px 48px rgba(0,0,0,0.38);
+        }
+
+        .section-header {
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .section-badge {
+            flex-shrink: 0;
+            width: 2rem;
+            height: 2rem;
+            border: 1px solid var(--border-hi);
+            background: rgba(192,136,80,0.07);
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 2rem;
+            font-family: var(--f-sans);
+            font-size: 0.65rem;
+            font-weight: 600;
+            letter-spacing: 0.06em;
+            color: var(--amber);
+            margin-top: 0.2rem;
         }
-        .card {
-            background: #1e1018;
-            border: 1px solid rgba(192,136,80,0.22);
-            padding: 2.5rem 2rem;
-            max-width: 480px;
-            width: 100%;
+
+        .section-titles {}
+
+        .section-eyebrow {
+            font-family: var(--f-sans);
+            font-size: 0.62rem;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            color: var(--amber-dim);
+            margin-bottom: 0.2rem;
         }
-        h1 {
+
+        .section-title {
+            font-family: var(--f-serif);
             font-size: 1.35rem;
             font-weight: 400;
-            margin-bottom: 0.4rem;
-            color: #ede0d0;
-            font-family: Palatino, Georgia, serif;
+            letter-spacing: 0.04em;
+            color: var(--cream);
+            line-height: 1.25;
         }
-        .note {
+
+        .section-desc {
             font-size: 0.8rem;
-            color: #907060;
-            margin-bottom: 1.75rem;
-            line-height: 1.5;
+            color: var(--muted);
+            line-height: 1.65;
+            margin-bottom: 1.5rem;
         }
-        label {
+
+        /* ── Section divider ───────────────────────────── */
+        .section-sep {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.55rem;
+            padding: 2.25rem 0;
+            color: var(--amber-dim);
+            font-size: 0.55rem;
+            letter-spacing: 0.3em;
+            opacity: 0.45;
+        }
+
+        .section-sep::before,
+        .section-sep::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: linear-gradient(to right, transparent, rgba(192,136,80,0.18));
+        }
+
+        .section-sep::after { transform: scaleX(-1); }
+
+        /* ── Form fields ───────────────────────────────── */
+        .field { margin-bottom: 1.1rem; }
+
+        .field-label {
             display: block;
-            font-size: 0.75rem;
-            letter-spacing: 0.1em;
-            text-transform: uppercase;
-            color: #907060;
-            margin-bottom: 0.35rem;
-        }
-        input[type=password] {
-            width: 100%;
-            background: #0f0a12;
-            border: 1px solid rgba(192,136,80,0.2);
-            color: #ede0d0;
-            padding: 0.65rem 0.75rem;
-            font-size: 0.95rem;
-            outline: none;
-            margin-bottom: 1rem;
-            font-family: inherit;
-            -webkit-user-select: text;
-            user-select: text;
-        }
-        input[type=password]:focus { border-color: rgba(192,136,80,0.5); }
-        button {
-            width: 100%;
-            background: #8B4255;
-            color: #ede0d0;
-            border: none;
-            padding: 0.75rem;
-            font-size: 0.82rem;
+            font-size: 0.68rem;
             letter-spacing: 0.12em;
             text-transform: uppercase;
-            cursor: pointer;
-            transition: background 0.2s;
+            color: var(--muted);
+            margin-bottom: 0.38rem;
         }
-        button:hover { background: #a05068; }
-        .result {
+
+        .field-label-opt {
+            text-transform: none;
+            letter-spacing: 0;
+            font-size: 0.65rem;
+            opacity: 0.6;
+        }
+
+        input[type="password"],
+        input[type="text"],
+        input[type="email"],
+        input[type="file"] {
+            width: 100%;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: var(--cream);
+            padding: 0.62rem 0.75rem;
+            font-family: var(--f-sans);
+            font-size: 0.88rem;
+            outline: none;
+            transition: border-color 0.2s, background 0.2s;
+            -webkit-user-select: text;
+            user-select: text;
+            border-radius: 0;
+            appearance: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="password"]:focus,
+        input[type="text"]:focus,
+        input[type="email"]:focus { border-color: var(--amber); background: rgba(255,255,255,0.055); }
+
+        input::placeholder { color: var(--muted); opacity: 0.6; font-style: italic; }
+
+        input[type="file"] { cursor: pointer; color: var(--muted); font-size: 0.8rem; }
+        input[type="file"]:focus { border-color: var(--amber); }
+
+        /* ── Buttons ───────────────────────────────────── */
+        .btn-primary {
+            width: 100%;
+            background: linear-gradient(135deg, var(--rose) 0%, var(--rose-deep) 100%);
+            color: var(--cream);
+            border: none;
+            padding: 0.75rem 1.5rem;
+            font-family: var(--f-sans);
+            font-size: 0.75rem;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.22s;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: linear-gradient(135deg, var(--rose-light) 0%, var(--rose) 100%);
+            box-shadow: 0 8px 24px rgba(139,66,85,0.36);
+            transform: translateY(-1px);
+        }
+
+        .btn-primary:disabled { opacity: 0.52; cursor: not-allowed; transform: none; }
+
+        .btn-ghost {
+            background: transparent;
+            border: 1px solid var(--border-hi);
+            color: var(--amber);
+            padding: 0.38rem 1rem;
+            font-family: var(--f-sans);
+            font-size: 0.71rem;
+            letter-spacing: 0.09em;
+            cursor: pointer;
+            transition: all 0.18s;
+        }
+
+        .btn-ghost:hover { background: rgba(192,136,80,0.08); border-color: rgba(192,136,80,0.6); }
+
+        /* ── Error / success messages ──────────────────── */
+        .msg-error {
+            font-size: 0.75rem;
+            color: var(--error);
+            margin-bottom: 0.75rem;
+            line-height: 1.5;
+        }
+
+        .msg-success {
+            background: rgba(80,160,100,0.07);
+            border: 1px solid rgba(80,160,100,0.3);
+            border-left: 3px solid var(--ok);
+            padding: 0.8rem 1rem;
+            font-size: 0.78rem;
+            color: #85b890;
+            margin-top: 1rem;
+            line-height: 1.6;
+        }
+
+        .msg-success code { font-family: var(--f-mono); font-size: 0.87em; color: #a0d0a8; }
+
+        /* ── Result panel (hash output) ────────────────── */
+        .result-panel {
             margin-top: 1.5rem;
-            background: #0a0610;
-            border: 1px solid rgba(192,136,80,0.15);
+            background: var(--code-bg);
+            border: 1px solid var(--border);
             padding: 1.25rem;
         }
-        .result h2 {
-            font-size: 0.75rem;
-            letter-spacing: 0.1em;
+
+        .result-label {
+            font-size: 0.65rem;
+            letter-spacing: 0.15em;
             text-transform: uppercase;
-            color: #907060;
-            margin-bottom: 0.75rem;
+            color: var(--muted);
+            margin-bottom: 0.65rem;
         }
-        .hash-box {
-            font-family: 'Courier New', monospace;
-            font-size: 0.78rem;
-            color: #c08850;
+
+        .hash-value {
+            font-family: var(--f-mono);
+            font-size: 0.77rem;
+            color: var(--amber);
             word-break: break-all;
-            line-height: 1.6;
+            line-height: 1.7;
             margin-bottom: 1rem;
             -webkit-user-select: text;
             user-select: text;
         }
-        .copy-btn {
-            width: auto;
-            background: transparent;
-            border: 1px solid rgba(192,136,80,0.3);
-            color: #c08850;
-            padding: 0.4rem 1rem;
-            font-size: 0.75rem;
-            letter-spacing: 0.08em;
-            display: inline-block;
-        }
-        .copy-btn:hover { background: rgba(192,136,80,0.08); }
-        .instruction {
+
+        .result-instructions {
             margin-top: 1rem;
-            font-size: 0.78rem;
-            color: #907060;
-            line-height: 1.6;
+            padding-top: 0.9rem;
+            border-top: 1px solid rgba(255,255,255,0.05);
+            font-size: 0.76rem;
+            color: var(--muted);
+            line-height: 1.65;
         }
-        .instruction code {
-            background: #0a0610;
-            color: #c08850;
-            padding: 0.1em 0.3em;
-            font-family: 'Courier New', monospace;
+
+        .result-instructions code {
+            font-family: var(--f-mono);
             font-size: 0.88em;
+            color: var(--amber);
+            background: rgba(192,136,80,0.08);
+            padding: 0.1em 0.35em;
         }
-        .error { color: #e07070; font-size: 0.8rem; margin-bottom: 0.75rem; }
-        .warn {
+
+        /* ── Steps list ────────────────────────────────── */
+        .steps { margin: 1.25rem 0 0.5rem; display: flex; flex-direction: column; gap: 0.85rem; }
+
+        .step {
+            display: flex;
+            gap: 0.9rem;
+            align-items: flex-start;
+            font-size: 0.8rem;
+            color: var(--muted);
+            line-height: 1.65;
+        }
+
+        .step-num {
+            flex-shrink: 0;
+            width: 1.55rem;
+            height: 1.55rem;
+            border: 1px solid var(--border-hi);
             background: rgba(192,136,80,0.07);
-            border-left: 2px solid rgba(192,136,80,0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.65rem;
+            font-weight: 600;
+            color: var(--amber);
+            letter-spacing: 0.02em;
+            margin-top: 0.08rem;
+        }
+
+        .step strong { color: var(--cream); font-weight: 600; }
+        .step em { font-style: italic; color: #a0887a; }
+        .step code { font-family: var(--f-mono); font-size: 0.86em; color: var(--amber); }
+
+        /* ── Code / rule blocks ────────────────────────── */
+        .code-block {
+            background: var(--code-bg);
+            border: 1px solid var(--border);
+            border-left: 2px solid rgba(192,136,80,0.3);
+            padding: 0.9rem 1.1rem;
+            font-family: var(--f-mono);
+            font-size: 0.72rem;
+            color: var(--amber);
+            white-space: pre;
+            overflow-x: auto;
+            line-height: 1.7;
+            margin: 0.5rem 0 1.25rem;
+            -webkit-user-select: text;
+            user-select: text;
+        }
+
+        /* ── Firebase config field grid ────────────────── */
+        .fb-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem 1rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .fb-grid input { font-family: var(--f-mono); font-size: 0.78rem; }
+
+        /* ── Snippet output panel ──────────────────────── */
+        .snippet-panel {
+            margin-top: 1.25rem;
+            background: var(--code-bg);
+            border: 1px solid var(--border-hi);
+        }
+
+        .snippet-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.6rem 1rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .snippet-header-label {
+            font-size: 0.65rem;
+            letter-spacing: 0.13em;
+            text-transform: uppercase;
+            color: var(--muted);
+        }
+
+        .snippet-code {
+            padding: 1rem;
+            font-family: var(--f-mono);
+            font-size: 0.72rem;
+            color: var(--amber);
+            white-space: pre;
+            overflow-x: auto;
+            line-height: 1.75;
+            -webkit-user-select: text;
+            user-select: text;
+        }
+
+        .snippet-footer {
             padding: 0.75rem 1rem;
-            font-size: 0.78rem;
-            color: #b0906a;
-            margin-bottom: 1.5rem;
-            line-height: 1.5;
+            border-top: 1px solid var(--border);
+            font-size: 0.74rem;
+            color: var(--muted);
+            line-height: 1.55;
         }
-        .divider {
-            border: none;
-            border-top: 1px solid rgba(192,136,80,0.15);
-            margin: 2.5rem 0;
+
+        .snippet-footer code {
+            font-family: var(--f-mono);
+            font-size: 0.87em;
+            color: var(--amber);
         }
-        input[type=file] {
-            width: 100%;
-            background: #0f0a12;
-            border: 1px solid rgba(192,136,80,0.2);
-            color: #907060;
-            padding: 0.65rem 0.75rem;
-            font-size: 0.82rem;
-            outline: none;
-            margin-bottom: 1rem;
-            font-family: inherit;
-            cursor: pointer;
+
+        /* ── Page footer ───────────────────────────────── */
+        .page-footer {
+            position: relative;
+            z-index: 1;
+            text-align: center;
+            padding: 2rem;
+            font-size: 0.68rem;
+            color: var(--muted);
+            opacity: 0.4;
+            letter-spacing: 0.08em;
         }
-        input[type=file]:focus { border-color: rgba(192,136,80,0.5); }
-        .success {
-            background: rgba(80,136,80,0.1);
-            border-left: 2px solid rgba(80,136,80,0.5);
-            padding: 0.75rem 1rem;
-            font-size: 0.78rem;
-            color: #80b080;
-            margin-top: 1rem;
-            line-height: 1.5;
+
+        /* ── Responsive ────────────────────────────────── */
+        @media (max-width: 560px) {
+            main { padding: 2rem 1rem 4rem; }
+            .page-header { padding: 0.9rem 1rem; }
+            .section-card { padding: 1.5rem 1.25rem 1.75rem; }
+            .fb-grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
 <body>
-    <div class="card">
-        <h1>Password Setup</h1>
-        <p class="note">Run this page locally (open it in your browser before uploading to GitHub). Generate your password hash, then paste it into <code style="color:#c08850">js/config.js</code>.</p>
-        <div class="warn">⚠ Do not upload this file to GitHub — it is only needed locally.</div>
+
+<div class="bg-layer"></div>
+
+<header class="page-header">
+    <div class="header-brand">
+        <span class="header-ornament">❧</span>
+        <span>Our Sanctuary</span>
+    </div>
+    <span class="header-tag">Setup</span>
+</header>
+
+<main>
+
+    <!-- Warning -->
+    <div class="local-warning">
+        <span>🔒</span>
+        <span><strong>Local use only.</strong> Open this file directly in your browser — do not deploy or upload it to GitHub. It contains tools for generating secrets.</span>
+    </div>
+
+    <!-- ── Section 1: Password Hash ───────────────────── -->
+    <div class="section-card">
+        <div class="section-header">
+            <div class="section-badge">01</div>
+            <div class="section-titles">
+                <div class="section-eyebrow">Password</div>
+                <h2 class="section-title">Generate Password Hash</h2>
+            </div>
+        </div>
+
+        <p class="section-desc">
+            Your vault password is never stored directly. Enter it here to produce a SHA-256 hash,
+            which goes into <code style="font-family:'Courier New',monospace;font-size:0.88em;color:var(--amber)">js/config.js</code>.
+            The hash lets the app verify your password without recording it.
+        </p>
 
         <form id="form">
-            <label>Choose your password</label>
-            <input type="password" id="pw" placeholder="Enter password" required>
-            <label>Confirm password</label>
-            <input type="password" id="pw2" placeholder="Confirm password" required>
-            <p class="error" id="err" hidden>Passwords do not match.</p>
-            <button type="submit">Generate Hash</button>
+            <div class="field">
+                <label class="field-label" for="pw">Choose your password</label>
+                <input type="password" id="pw" placeholder="Enter password" autocomplete="new-password" required>
+            </div>
+            <div class="field">
+                <label class="field-label" for="pw2">Confirm password</label>
+                <input type="password" id="pw2" placeholder="Confirm password" autocomplete="new-password" required>
+            </div>
+            <p class="msg-error" id="err" hidden>Passwords do not match.</p>
+            <button type="submit" class="btn-primary">Generate Hash</button>
         </form>
 
-        <div class="result" id="result" hidden>
-            <h2>Your password hash</h2>
-            <div class="hash-box" id="hash-out"></div>
-            <button class="copy-btn" onclick="copyHash()">Copy to clipboard</button>
-            <p class="instruction">
-                Open <code>js/config.js</code> in a text editor and replace
-                <code>REPLACE_WITH_YOUR_PASSWORD_HASH</code> with the hash above.
-                Then save and upload to GitHub.
-            </p>
+        <div class="result-panel" id="result" hidden>
+            <div class="result-label">Your password hash</div>
+            <div class="hash-value" id="hash-out"></div>
+            <button class="btn-ghost" id="copy-hash-btn" onclick="copyHash()">Copy to clipboard</button>
+            <div class="result-instructions">
+                Open <code>js/config.js</code> and replace the value of
+                <code>passwordHash</code> with the hash above. Save the file, then upload your
+                project to GitHub.
+            </div>
         </div>
     </div>
 
-    <!-- ── Encrypt File Section ─────────────────────── -->
-    <hr class="divider">
-    <div class="card" style="margin-top:0; border-top: none;">
-        <h1>Encrypt File for docs/</h1>
-        <p class="note">
-            Encrypt an existing file (PDF, image) with your vault password before uploading it to
-            GitHub. The encrypted file is safe to serve publicly — without the password it is
-            unreadable ciphertext. After uploading, add <code style="color:#c08850">"encrypted": true</code>
-            to its entry in <code style="color:#c08850">documents.json</code>.
+    <div class="section-sep">· · ·</div>
+
+    <!-- ── Section 2: Encrypt File ────────────────────── -->
+    <div class="section-card">
+        <div class="section-header">
+            <div class="section-badge">02</div>
+            <div class="section-titles">
+                <div class="section-eyebrow">Static Documents</div>
+                <h2 class="section-title">Encrypt a File</h2>
+            </div>
+        </div>
+
+        <p class="section-desc">
+            Encrypt a PDF or image before committing it to your repository. The encrypted file
+            is safe to host publicly — without your vault password it is unreadable ciphertext.
+            After uploading, add <code style="font-family:'Courier New',monospace;font-size:0.88em;color:var(--amber)">"encrypted": true</code> to its
+            entry in <code style="font-family:'Courier New',monospace;font-size:0.88em;color:var(--amber)">documents.json</code>.
         </p>
-        <div class="warn">⚠ Use the same password you hashed above. A different password means the vault cannot decrypt it.</div>
 
         <form id="enc-form">
-            <label>Your vault password</label>
-            <input type="password" id="enc-pw" placeholder="Enter your vault password" required>
-            <label>File to encrypt</label>
-            <input type="file" id="enc-file"
-                accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.avif,.bmp" required>
-            <p class="error" id="enc-err" hidden></p>
-            <button type="submit" id="enc-btn">Encrypt &amp; Download</button>
+            <div class="field">
+                <label class="field-label" for="enc-pw">Vault password</label>
+                <input type="password" id="enc-pw" placeholder="Enter your vault password" autocomplete="current-password" required>
+            </div>
+            <div class="field">
+                <label class="field-label" for="enc-file">File to encrypt</label>
+                <input type="file" id="enc-file" accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.avif,.bmp" required>
+            </div>
+            <p class="msg-error" id="enc-err" hidden></p>
+            <button type="submit" id="enc-btn" class="btn-primary">Encrypt &amp; Download</button>
         </form>
 
         <div id="enc-success" hidden>
-            <p class="success">
-                ✓ Encrypted file downloaded. Upload it to your <code style="color:#c08850">docs/</code>
-                folder, then in <code style="color:#c08850">documents.json</code> add
-                <code style="color:#c08850">"encrypted": true</code> to that document's entry.
-            </p>
+            <div class="msg-success">
+                ✓ Encrypted file downloaded. Upload it to your <code>docs/</code> folder, then in
+                <code>documents.json</code> set <code>"encrypted": true</code> on that document's entry.
+            </div>
         </div>
     </div>
 
-    <script>
-        async function sha256(str) {
-            const buf  = new TextEncoder().encode(str);
-            const hash = await crypto.subtle.digest('SHA-256', buf);
-            return Array.from(new Uint8Array(hash))
-                .map(b => b.toString(16).padStart(2, '0'))
-                .join('');
-        }
+    <div class="section-sep">· · ·</div>
 
-        document.getElementById('form').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            const pw  = document.getElementById('pw').value;
-            const pw2 = document.getElementById('pw2').value;
-            const err = document.getElementById('err');
+    <!-- ── Section 3: Firebase ────────────────────────── -->
+    <div class="section-card">
+        <div class="section-header">
+            <div class="section-badge">03</div>
+            <div class="section-titles">
+                <div class="section-eyebrow">Cross-Device Sync</div>
+                <h2 class="section-title">Firebase Setup</h2>
+            </div>
+        </div>
 
-            if (pw !== pw2) { err.hidden = false; return; }
-            err.hidden = true;
+        <p class="section-desc">
+            Without Firebase, uploaded files only exist on the device that uploaded them. Complete
+            this section once and every device will share the same vault. Takes about 10 minutes.
+            Files are still encrypted before they reach Firebase — the server never sees your content.
+        </p>
 
-            const hash = await sha256(pw);
-            document.getElementById('hash-out').textContent = hash;
-            document.getElementById('result').hidden = false;
+        <div class="steps">
+            <div class="step">
+                <div class="step-num">1</div>
+                <div>Go to <strong>console.firebase.google.com</strong>, sign in with any Google account, and click <strong>Add project</strong>. Give it any name and disable Google Analytics.</div>
+            </div>
+            <div class="step">
+                <div class="step-num">2</div>
+                <div>In the left sidebar open <strong>Build → Firestore Database</strong>. Click <strong>Create database</strong>, choose <em>Production mode</em>, pick the region nearest you, and click Done.</div>
+            </div>
+            <div class="step">
+                <div class="step-num">3</div>
+                <div>Open <strong>Build → Authentication</strong>. Click <strong>Get started</strong>. Under <em>Sign-in method</em> enable <strong>Email/Password</strong>. Go to the <em>Users</em> tab and click <strong>Add user</strong> — enter any email and password. These are your Firebase credentials, separate from your vault password.</div>
+            </div>
+            <div class="step">
+                <div class="step-num">4</div>
+                <div>In <strong>Firestore Database → Rules</strong>, replace all content with the rule below, then click <strong>Publish</strong>. This covers both metadata and file storage.</div>
+            </div>
+        </div>
+
+        <div class="code-block">rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}</div>
+
+        <div class="steps">
+            <div class="step">
+                <div class="step-num">5</div>
+                <div>Go to <strong>Project Settings</strong> (gear icon) → <em>General</em> tab → scroll to <strong>Your apps</strong>. Click the web icon <code>&lt;/&gt;</code>, give it any name, click <strong>Register app</strong>. Copy the config values into the fields below.</div>
+            </div>
+        </div>
+
+        <div class="fb-grid" style="margin-top:1.25rem;">
+            <div class="field">
+                <label class="field-label" for="fb-apiKey">apiKey</label>
+                <input type="text" id="fb-apiKey" placeholder="AIzaSy…">
+            </div>
+            <div class="field">
+                <label class="field-label" for="fb-authDomain">authDomain</label>
+                <input type="text" id="fb-authDomain" placeholder="project.firebaseapp.com">
+            </div>
+            <div class="field">
+                <label class="field-label" for="fb-projectId">projectId</label>
+                <input type="text" id="fb-projectId" placeholder="your-project-id">
+            </div>
+            <div class="field">
+                <label class="field-label" for="fb-storageBucket">storageBucket</label>
+                <input type="text" id="fb-storageBucket" placeholder="project.appspot.com">
+            </div>
+            <div class="field">
+                <label class="field-label" for="fb-msgId">messagingSenderId</label>
+                <input type="text" id="fb-msgId" placeholder="123456789012">
+            </div>
+            <div class="field">
+                <label class="field-label" for="fb-appId">appId</label>
+                <input type="text" id="fb-appId" placeholder="1:123:web:abc…">
+            </div>
+            <div class="field">
+                <label class="field-label" for="fb-email">Firebase email <span class="field-label-opt">(from step 4)</span></label>
+                <input type="text" id="fb-email" placeholder="you@example.com">
+            </div>
+            <div class="field">
+                <label class="field-label" for="fb-pw">Firebase password <span class="field-label-opt">(from step 4)</span></label>
+                <input type="text" id="fb-pw" placeholder="firebase password">
+            </div>
+        </div>
+
+        <button type="button" class="btn-primary" onclick="generateFbSnippet()">Generate Config Snippet</button>
+
+        <div class="snippet-panel" id="fb-snippet" hidden>
+            <div class="snippet-header">
+                <span class="snippet-header-label">Paste into js/config.js</span>
+                <button class="btn-ghost" id="copy-snippet-btn" onclick="copyFbSnippet()">Copy</button>
+            </div>
+            <div class="snippet-code" id="fb-snippet-code"></div>
+            <div class="snippet-footer">
+                Open <code>js/config.js</code>, find the <code>firebaseConfig</code> block, and
+                replace it with the snippet above. Save the file and redeploy.
+            </div>
+        </div>
+    </div>
+
+</main>
+
+<footer class="page-footer">Our Sanctuary · Setup · For your eyes only</footer>
+
+<script>
+    // ── Password hash ────────────────────────────────────────────────
+    async function sha256(str) {
+        const buf  = new TextEncoder().encode(str);
+        const hash = await crypto.subtle.digest('SHA-256', buf);
+        return Array.from(new Uint8Array(hash))
+            .map(b => b.toString(16).padStart(2, '0'))
+            .join('');
+    }
+
+    document.getElementById('form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const pw  = document.getElementById('pw').value;
+        const pw2 = document.getElementById('pw2').value;
+        const err = document.getElementById('err');
+        if (pw !== pw2) { err.hidden = false; return; }
+        err.hidden = true;
+        const hash = await sha256(pw);
+        document.getElementById('hash-out').textContent = hash;
+        document.getElementById('result').hidden = false;
+    });
+
+    function copyHash() {
+        const text = document.getElementById('hash-out').textContent;
+        navigator.clipboard.writeText(text).then(function() {
+            const btn = document.getElementById('copy-hash-btn');
+            const prev = btn.textContent;
+            btn.textContent = 'Copied!';
+            setTimeout(function() { btn.textContent = prev; }, 2000);
         });
+    }
 
-        function copyHash() {
-            const h = document.getElementById('hash-out').textContent;
-            navigator.clipboard.writeText(h).then(function() {
-                const btn = document.querySelector('.copy-btn');
-                btn.textContent = 'Copied!';
-                setTimeout(function() { btn.textContent = 'Copy to clipboard'; }, 2000);
-            });
+    // ── File encryption ──────────────────────────────────────────────
+    const _SALT = new TextEncoder().encode('sanctuary-vault-v1');
+
+    async function deriveEncKey(password) {
+        const km = await crypto.subtle.importKey(
+            'raw', new TextEncoder().encode(password), 'PBKDF2', false, ['deriveKey']
+        );
+        return crypto.subtle.deriveKey(
+            { name: 'PBKDF2', salt: _SALT, iterations: 200000, hash: 'SHA-256' },
+            km,
+            { name: 'AES-GCM', length: 256 },
+            false, ['encrypt']
+        );
+    }
+
+    document.getElementById('enc-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const pw   = document.getElementById('enc-pw').value;
+        const file = document.getElementById('enc-file').files[0];
+        const err  = document.getElementById('enc-err');
+        const btn  = document.getElementById('enc-btn');
+
+        err.hidden = true;
+        document.getElementById('enc-success').hidden = true;
+
+        if (!pw)   { err.textContent = 'Enter your vault password.'; err.hidden = false; return; }
+        if (!file) { err.textContent = 'Select a file to encrypt.';  err.hidden = false; return; }
+
+        btn.disabled    = true;
+        btn.textContent = 'Encrypting…';
+
+        try {
+            const key = await deriveEncKey(pw);
+            const buf = await file.arrayBuffer();
+            const iv  = crypto.getRandomValues(new Uint8Array(12));
+            const ct  = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, buf);
+            const out = new Uint8Array(12 + ct.byteLength);
+            out.set(iv);
+            out.set(new Uint8Array(ct), 12);
+            const blob = new Blob([out], { type: 'application/octet-stream' });
+            const url  = URL.createObjectURL(blob);
+            const a    = document.createElement('a');
+            a.href     = url;
+            a.download = file.name;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            document.getElementById('enc-success').hidden = false;
+        } catch (ex) {
+            err.textContent = 'Encryption failed: ' + ex.message;
+            err.hidden = false;
+        } finally {
+            btn.disabled    = false;
+            btn.textContent = 'Encrypt & Download';
         }
+    });
 
-        // ── File Encryption ──────────────────────────────────
-        const _SALT = new TextEncoder().encode('sanctuary-vault-v1');
+    // ── Firebase snippet generator ───────────────────────────────────
+    function generateFbSnippet() {
+        var v = function(id) { return document.getElementById(id).value.trim(); };
+        var snippet =
+'    firebaseConfig: {\n' +
+'        apiKey:            \'' + v('fb-apiKey')        + '\',\n' +
+'        authDomain:        \'' + v('fb-authDomain')    + '\',\n' +
+'        projectId:         \'' + v('fb-projectId')     + '\',\n' +
+'        storageBucket:     \'' + v('fb-storageBucket') + '\',\n' +
+'        messagingSenderId: \'' + v('fb-msgId')         + '\',\n' +
+'        appId:             \'' + v('fb-appId')         + '\'\n' +
+'    },\n' +
+'    firebaseEmail:    \'' + v('fb-email') + '\',\n' +
+'    firebasePassword: \'' + v('fb-pw')    + '\'';
+        document.getElementById('fb-snippet-code').textContent = snippet;
+        document.getElementById('fb-snippet').hidden = false;
+    }
 
-        async function deriveEncKey(password) {
-            const km = await crypto.subtle.importKey(
-                'raw', new TextEncoder().encode(password), 'PBKDF2', false, ['deriveKey']
-            );
-            return crypto.subtle.deriveKey(
-                { name: 'PBKDF2', salt: _SALT, iterations: 200000, hash: 'SHA-256' },
-                km,
-                { name: 'AES-GCM', length: 256 },
-                false,
-                ['encrypt']
-            );
-        }
-
-        document.getElementById('enc-form').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            const pw   = document.getElementById('enc-pw').value;
-            const file = document.getElementById('enc-file').files[0];
-            const err  = document.getElementById('enc-err');
-            const btn  = document.getElementById('enc-btn');
-
-            err.hidden = true;
-            document.getElementById('enc-success').hidden = true;
-
-            if (!pw)   { err.textContent = 'Enter your vault password.'; err.hidden = false; return; }
-            if (!file) { err.textContent = 'Select a file to encrypt.';  err.hidden = false; return; }
-
-            btn.disabled    = true;
-            btn.textContent = 'Encrypting…';
-
-            try {
-                const key = await deriveEncKey(pw);
-                const buf = await file.arrayBuffer();
-                const iv  = crypto.getRandomValues(new Uint8Array(12));
-                const ct  = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, buf);
-
-                // Output: 12-byte IV + ciphertext
-                const out = new Uint8Array(12 + ct.byteLength);
-                out.set(iv);
-                out.set(new Uint8Array(ct), 12);
-
-                const blob     = new Blob([out], { type: 'application/octet-stream' });
-                const url      = URL.createObjectURL(blob);
-                const a        = document.createElement('a');
-                a.href         = url;
-                a.download     = file.name; // keep original name; content is ciphertext
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-
-                document.getElementById('enc-success').hidden = false;
-            } catch (ex) {
-                err.textContent = 'Encryption failed: ' + ex.message;
-                err.hidden = false;
-            } finally {
-                btn.disabled    = false;
-                btn.textContent = 'Encrypt & Download';
-            }
+    function copyFbSnippet() {
+        var text = document.getElementById('fb-snippet-code').textContent;
+        navigator.clipboard.writeText(text).then(function() {
+            var btn = document.getElementById('copy-snippet-btn');
+            var prev = btn.textContent;
+            btn.textContent = 'Copied!';
+            setTimeout(function() { btn.textContent = prev; }, 2000);
         });
-    </script>
+    }
+</script>
 </body>
 </html>

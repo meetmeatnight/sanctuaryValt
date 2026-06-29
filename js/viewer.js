@@ -1,6 +1,9 @@
 const IMAGE_TYPES = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'avif', 'bmp'];
 
 async function loadDoc() {
+    // Connect to Firebase so retrieveFile() can fall back to cloud if not cached locally
+    if (typeof initFirebase === 'function') await initFirebase().catch(() => {});
+
     const params = new URLSearchParams(window.location.search);
     const docId  = params.get('id');
     if (!docId) { window.location.href = 'vault.html'; return; }
