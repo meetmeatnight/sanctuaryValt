@@ -46,7 +46,7 @@ const CONFIG = {
     },
 
     // The email + password of the Firebase Auth user you created in step 5 above
-    firebaseEmail:    'sanctuaryvalt@gmail.com',
+    firebaseEmail:    'sanctuaryvault@gmail.com',
     firebasePassword: 'Sahil8912@',
 
 };
