@@ -1,0 +1,13 @@
+{
+    "documents": [
+        {
+            "id": "example-1",
+            "title": "Our First Chapter",
+            "type": "pdf",
+            "path": "docs/example.pdf",
+            "coverClass": "cover-1",
+            "description": "Replace this with your document. Add the file to the docs/ folder.",
+            "date": "June 2024"
+        }
+    ]
+}

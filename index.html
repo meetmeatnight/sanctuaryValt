@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <meta name="description" content="Private space">
+    <title>Our Sanctuary</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌹</text></svg>">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="page-gate" style="visibility:hidden">
+
+    <div class="bg-layer"></div>
+    <div class="hearts-container"></div>
+
+    <main class="gate-card">
+        <span class="gate-ornament">❧</span>
+        <h1 class="gate-title" id="gate-title">Our Sanctuary</h1>
+        <p class="gate-subtitle">a private space, just for us</p>
+        <div class="gate-divider"></div>
+
+        <form id="login-form" class="gate-form" autocomplete="off">
+            <input
+                type="password"
+                id="password-input"
+                class="password-field"
+                placeholder="enter your key"
+                autocomplete="current-password"
+                required
+            >
+            <p class="error-msg" id="error-msg" hidden aria-live="polite">
+                Incorrect password. Please try again.
+            </p>
+            <button type="submit" class="enter-btn" id="enter-btn">
+                <span>Enter</span>
+                <span class="btn-arrow">→</span>
+            </button>
+        </form>
+
+        <p class="gate-note">protected · for your eyes only</p>
+    </main>
+
+    <script src="js/config.js"></script>
+    <script src="js/crypto.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/hearts.js"></script>
+    <script>
+        // Apply config
+        if (CONFIG.siteTitle) {
+            document.title = CONFIG.siteTitle;
+            document.getElementById('gate-title').textContent = CONFIG.siteTitle;
+        }
+        if (CONFIG.backgroundImage) {
+            const _layer = document.querySelector('.bg-layer');
+            if (_layer) _layer.style.backgroundImage =
+                `linear-gradient(rgba(14,8,16,.72),rgba(14,8,16,.72)), url('${CONFIG.backgroundImage}')`;
+        }
+
+        // Skip gate if already authenticated; unhide only after the async check
+        (async () => {
+            if (await isAuthenticated()) {
+                window.location.href = 'vault.html';
+            } else {
+                document.body.style.visibility = '';
+            }
+        })();
+
+        document.getElementById('login-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const btn = document.getElementById('enter-btn');
+            const err = document.getElementById('error-msg');
+            const pw  = document.getElementById('password-input').value;
+
+            btn.disabled = true;
+            btn.innerHTML = '<span>Unlocking…</span>';
+            err.hidden = true;
+
+            const ok = await login(pw);
+
+            if (ok) {
+                document.body.classList.add('unlocking');
+                setTimeout(function() { window.location.href = 'vault.html'; }, 750);
+            } else {
+                btn.disabled = false;
+                btn.innerHTML = '<span>Enter</span><span class="btn-arrow">→</span>';
+                err.hidden = false;
+                document.getElementById('password-input').value = '';
+                document.getElementById('password-input').focus();
+            }
+        });
+    </script>
+</body>
+</html>

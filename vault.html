@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Our Sanctuary</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌹</text></svg>">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="page-vault" style="visibility:hidden">
+
+    <div class="bg-layer"></div>
+
+    <header class="vault-header">
+        <div class="vault-brand">
+            <span class="brand-ornament">❧</span>
+            <span class="brand-title">Our Sanctuary</span>
+        </div>
+        <button class="logout-btn" onclick="logout()">Sign out</button>
+    </header>
+
+    <main class="vault-main">
+        <div class="vault-hero">
+            <div class="vault-hero-top">
+                <div>
+                    <h1 class="vault-heading">Our Collection</h1>
+                    <p class="vault-desc" id="vault-desc">Everything we keep, just for us.</p>
+                </div>
+                <div class="vault-actions">
+                    <button class="action-btn" id="btn-new-folder">+ New Folder</button>
+                    <button class="action-btn action-btn-primary" id="btn-upload">↑ Upload</button>
+                </div>
+            </div>
+            <nav class="breadcrumb" id="breadcrumb" hidden aria-label="Folder navigation">
+                <!-- filled dynamically -->
+            </nav>
+        </div>
+
+        <div class="docs-grid" id="docs-grid">
+            <p class="loading-msg">Loading your collection…</p>
+        </div>
+    </main>
+
+    <footer class="vault-footer">
+        Our private space · protected
+    </footer>
+
+    <!-- ── New Folder Modal ────────────────────────────────── -->
+    <div class="modal-overlay" id="modal-folder" hidden
+         role="dialog" aria-modal="true" aria-labelledby="modal-folder-title">
+        <div class="modal-card">
+            <div class="modal-head">
+                <h3 class="modal-title" id="modal-folder-title">New Folder</h3>
+                <button class="modal-close" type="button" onclick="document.getElementById('modal-folder').hidden=true" aria-label="Close">✕</button>
+            </div>
+            <div class="modal-field">
+                <label class="modal-label" for="folder-name-input">Folder Name</label>
+                <input type="text" id="folder-name-input" class="modal-input"
+                    placeholder="e.g. Letters, Memories, 2024…"
+                    maxlength="60" autocomplete="off">
+            </div>
+            <div class="modal-actions">
+                <button class="modal-btn" id="modal-folder-cancel">Cancel</button>
+                <button class="modal-btn modal-btn-primary" id="modal-folder-create">Create</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Upload Modal ───────────────────────────────────── -->
+    <div class="modal-overlay" id="modal-upload" hidden
+         role="dialog" aria-modal="true" aria-labelledby="modal-upload-title">
+        <div class="modal-card">
+            <div class="modal-head">
+                <h3 class="modal-title" id="modal-upload-title">Upload Document</h3>
+                <button class="modal-close" type="button" onclick="closeUploadModal()" aria-label="Close">✕</button>
+            </div>
+            <div class="modal-field">
+                <label class="modal-label" for="modal-file-input">File</label>
+                <label class="upload-zone" for="modal-file-input" id="upload-zone">
+                    <span id="upload-zone-text">↑  Choose a file…</span>
+                </label>
+                <input type="file" id="modal-file-input"
+                    accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.avif,.bmp" hidden>
+            </div>
+            <div class="modal-field">
+                <label class="modal-label" for="upload-title">Title</label>
+                <input type="text" id="upload-title" class="modal-input"
+                    placeholder="Document title"
+                    maxlength="80" autocomplete="off">
+            </div>
+            <div class="modal-field">
+                <label class="modal-label" for="upload-desc">
+                    Description <span class="modal-label-opt">(optional)</span>
+                </label>
+                <textarea id="upload-desc" class="modal-input modal-textarea"
+                    placeholder="A brief note about this document…"
+                    maxlength="200" rows="3"></textarea>
+            </div>
+            <p class="modal-error" id="upload-error" hidden></p>
+            <div class="modal-actions">
+                <button class="modal-btn" id="upload-modal-cancel">Cancel</button>
+                <button class="modal-btn modal-btn-primary" id="upload-modal-save">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Delete Confirm Modal ──────────────────────────── -->
+    <div class="modal-overlay" id="modal-delete" hidden
+         role="dialog" aria-modal="true" aria-labelledby="modal-delete-title">
+        <div class="modal-card">
+            <div class="modal-head">
+                <h3 class="modal-title" id="modal-delete-title">Confirm Delete</h3>
+                <button class="modal-close" type="button" onclick="document.getElementById('modal-delete').hidden=true" aria-label="Close">✕</button>
+            </div>
+            <p class="modal-delete-msg" id="delete-msg"></p>
+            <div class="modal-field">
+                <label class="modal-label" for="delete-password">Enter your password to confirm</label>
+                <input type="password" id="delete-password" class="modal-input"
+                    placeholder="your password" autocomplete="off">
+            </div>
+            <p class="modal-error" id="delete-error" hidden></p>
+            <div class="modal-actions">
+                <button class="modal-btn" id="delete-cancel">Cancel</button>
+                <button class="modal-btn modal-btn-danger" id="delete-confirm">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/crypto.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/protect.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/vault.js"></script>
+    <script>
+        (async () => {
+            if (!await isAuthenticated()) {
+                window.location.href = 'index.html';
+            } else {
+                document.body.style.visibility = '';
+                try { await initVault(); } catch (e) {
+                    console.error('[vault] initVault failed:', e);
+                    // Fallback: still render the grid even if something errored
+                    if (typeof renderGrid === 'function') renderGrid();
+                }
+            }
+        })();
+    </script>
+</body>
+</html>

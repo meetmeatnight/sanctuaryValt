@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Setup — Generate Password Hash</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif;
+            background: #0f0a12;
+            color: #e8ddd0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+        .card {
+            background: #1e1018;
+            border: 1px solid rgba(192,136,80,0.22);
+            padding: 2.5rem 2rem;
+            max-width: 480px;
+            width: 100%;
+        }
+        h1 {
+            font-size: 1.35rem;
+            font-weight: 400;
+            margin-bottom: 0.4rem;
+            color: #ede0d0;
+            font-family: Palatino, Georgia, serif;
+        }
+        .note {
+            font-size: 0.8rem;
+            color: #907060;
+            margin-bottom: 1.75rem;
+            line-height: 1.5;
+        }
+        label {
+            display: block;
+            font-size: 0.75rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: #907060;
+            margin-bottom: 0.35rem;
+        }
+        input[type=password] {
+            width: 100%;
+            background: #0f0a12;
+            border: 1px solid rgba(192,136,80,0.2);
+            color: #ede0d0;
+            padding: 0.65rem 0.75rem;
+            font-size: 0.95rem;
+            outline: none;
+            margin-bottom: 1rem;
+            font-family: inherit;
+            -webkit-user-select: text;
+            user-select: text;
+        }
+        input[type=password]:focus { border-color: rgba(192,136,80,0.5); }
+        button {
+            width: 100%;
+            background: #8B4255;
+            color: #ede0d0;
+            border: none;
+            padding: 0.75rem;
+            font-size: 0.82rem;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        button:hover { background: #a05068; }
+        .result {
+            margin-top: 1.5rem;
+            background: #0a0610;
+            border: 1px solid rgba(192,136,80,0.15);
+            padding: 1.25rem;
+        }
+        .result h2 {
+            font-size: 0.75rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: #907060;
+            margin-bottom: 0.75rem;
+        }
+        .hash-box {
+            font-family: 'Courier New', monospace;
+            font-size: 0.78rem;
+            color: #c08850;
+            word-break: break-all;
+            line-height: 1.6;
+            margin-bottom: 1rem;
+            -webkit-user-select: text;
+            user-select: text;
+        }
+        .copy-btn {
+            width: auto;
+            background: transparent;
+            border: 1px solid rgba(192,136,80,0.3);
+            color: #c08850;
+            padding: 0.4rem 1rem;
+            font-size: 0.75rem;
+            letter-spacing: 0.08em;
+            display: inline-block;
+        }
+        .copy-btn:hover { background: rgba(192,136,80,0.08); }
+        .instruction {
+            margin-top: 1rem;
+            font-size: 0.78rem;
+            color: #907060;
+            line-height: 1.6;
+        }
+        .instruction code {
+            background: #0a0610;
+            color: #c08850;
+            padding: 0.1em 0.3em;
+            font-family: 'Courier New', monospace;
+            font-size: 0.88em;
+        }
+        .error { color: #e07070; font-size: 0.8rem; margin-bottom: 0.75rem; }
+        .warn {
+            background: rgba(192,136,80,0.07);
+            border-left: 2px solid rgba(192,136,80,0.4);
+            padding: 0.75rem 1rem;
+            font-size: 0.78rem;
+            color: #b0906a;
+            margin-bottom: 1.5rem;
+            line-height: 1.5;
+        }
+        .divider {
+            border: none;
+            border-top: 1px solid rgba(192,136,80,0.15);
+            margin: 2.5rem 0;
+        }
+        input[type=file] {
+            width: 100%;
+            background: #0f0a12;
+            border: 1px solid rgba(192,136,80,0.2);
+            color: #907060;
+            padding: 0.65rem 0.75rem;
+            font-size: 0.82rem;
+            outline: none;
+            margin-bottom: 1rem;
+            font-family: inherit;
+            cursor: pointer;
+        }
+        input[type=file]:focus { border-color: rgba(192,136,80,0.5); }
+        .success {
+            background: rgba(80,136,80,0.1);
+            border-left: 2px solid rgba(80,136,80,0.5);
+            padding: 0.75rem 1rem;
+            font-size: 0.78rem;
+            color: #80b080;
+            margin-top: 1rem;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>Password Setup</h1>
+        <p class="note">Run this page locally (open it in your browser before uploading to GitHub). Generate your password hash, then paste it into <code style="color:#c08850">js/config.js</code>.</p>
+        <div class="warn">⚠ Do not upload this file to GitHub — it is only needed locally.</div>
+
+        <form id="form">
+            <label>Choose your password</label>
+            <input type="password" id="pw" placeholder="Enter password" required>
+            <label>Confirm password</label>
+            <input type="password" id="pw2" placeholder="Confirm password" required>
+            <p class="error" id="err" hidden>Passwords do not match.</p>
+            <button type="submit">Generate Hash</button>
+        </form>
+
+        <div class="result" id="result" hidden>
+            <h2>Your password hash</h2>
+            <div class="hash-box" id="hash-out"></div>
+            <button class="copy-btn" onclick="copyHash()">Copy to clipboard</button>
+            <p class="instruction">
+                Open <code>js/config.js</code> in a text editor and replace
+                <code>REPLACE_WITH_YOUR_PASSWORD_HASH</code> with the hash above.
+                Then save and upload to GitHub.
+            </p>
+        </div>
+    </div>
+
+    <!-- ── Encrypt File Section ─────────────────────── -->
+    <hr class="divider">
+    <div class="card" style="margin-top:0; border-top: none;">
+        <h1>Encrypt File for docs/</h1>
+        <p class="note">
+            Encrypt an existing file (PDF, image) with your vault password before uploading it to
+            GitHub. The encrypted file is safe to serve publicly — without the password it is
+            unreadable ciphertext. After uploading, add <code style="color:#c08850">"encrypted": true</code>
+            to its entry in <code style="color:#c08850">documents.json</code>.
+        </p>
+        <div class="warn">⚠ Use the same password you hashed above. A different password means the vault cannot decrypt it.</div>
+
+        <form id="enc-form">
+            <label>Your vault password</label>
+            <input type="password" id="enc-pw" placeholder="Enter your vault password" required>
+            <label>File to encrypt</label>
+            <input type="file" id="enc-file"
+                accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.avif,.bmp" required>
+            <p class="error" id="enc-err" hidden></p>
+            <button type="submit" id="enc-btn">Encrypt &amp; Download</button>
+        </form>
+
+        <div id="enc-success" hidden>
+            <p class="success">
+                ✓ Encrypted file downloaded. Upload it to your <code style="color:#c08850">docs/</code>
+                folder, then in <code style="color:#c08850">documents.json</code> add
+                <code style="color:#c08850">"encrypted": true</code> to that document's entry.
+            </p>
+        </div>
+    </div>
+
+    <script>
+        async function sha256(str) {
+            const buf  = new TextEncoder().encode(str);
+            const hash = await crypto.subtle.digest('SHA-256', buf);
+            return Array.from(new Uint8Array(hash))
+                .map(b => b.toString(16).padStart(2, '0'))
+                .join('');
+        }
+
+        document.getElementById('form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const pw  = document.getElementById('pw').value;
+            const pw2 = document.getElementById('pw2').value;
+            const err = document.getElementById('err');
+
+            if (pw !== pw2) { err.hidden = false; return; }
+            err.hidden = true;
+
+            const hash = await sha256(pw);
+            document.getElementById('hash-out').textContent = hash;
+            document.getElementById('result').hidden = false;
+        });
+
+        function copyHash() {
+            const h = document.getElementById('hash-out').textContent;
+            navigator.clipboard.writeText(h).then(function() {
+                const btn = document.querySelector('.copy-btn');
+                btn.textContent = 'Copied!';
+                setTimeout(function() { btn.textContent = 'Copy to clipboard'; }, 2000);
+            });
+        }
+
+        // ── File Encryption ──────────────────────────────────
+        const _SALT = new TextEncoder().encode('sanctuary-vault-v1');
+
+        async function deriveEncKey(password) {
+            const km = await crypto.subtle.importKey(
+                'raw', new TextEncoder().encode(password), 'PBKDF2', false, ['deriveKey']
+            );
+            return crypto.subtle.deriveKey(
+                { name: 'PBKDF2', salt: _SALT, iterations: 200000, hash: 'SHA-256' },
+                km,
+                { name: 'AES-GCM', length: 256 },
+                false,
+                ['encrypt']
+            );
+        }
+
+        document.getElementById('enc-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const pw   = document.getElementById('enc-pw').value;
+            const file = document.getElementById('enc-file').files[0];
+            const err  = document.getElementById('enc-err');
+            const btn  = document.getElementById('enc-btn');
+
+            err.hidden = true;
+            document.getElementById('enc-success').hidden = true;
+
+            if (!pw)   { err.textContent = 'Enter your vault password.'; err.hidden = false; return; }
+            if (!file) { err.textContent = 'Select a file to encrypt.';  err.hidden = false; return; }
+
+            btn.disabled    = true;
+            btn.textContent = 'Encrypting…';
+
+            try {
+                const key = await deriveEncKey(pw);
+                const buf = await file.arrayBuffer();
+                const iv  = crypto.getRandomValues(new Uint8Array(12));
+                const ct  = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, buf);
+
+                // Output: 12-byte IV + ciphertext
+                const out = new Uint8Array(12 + ct.byteLength);
+                out.set(iv);
+                out.set(new Uint8Array(ct), 12);
+
+                const blob     = new Blob([out], { type: 'application/octet-stream' });
+                const url      = URL.createObjectURL(blob);
+                const a        = document.createElement('a');
+                a.href         = url;
+                a.download     = file.name; // keep original name; content is ciphertext
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+
+                document.getElementById('enc-success').hidden = false;
+            } catch (ex) {
+                err.textContent = 'Encryption failed: ' + ex.message;
+                err.hidden = false;
+            } finally {
+                btn.disabled    = false;
+                btn.textContent = 'Encrypt & Download';
+            }
+        });
+    </script>
+</body>
+</html>

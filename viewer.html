@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Viewer — Our Sanctuary</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌹</text></svg>">
+    <link rel="stylesheet" href="css/style.css">
+    <!-- PDF.js — renders PDFs to canvas (no download link exposed) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+</head>
+<body class="page-viewer" style="visibility:hidden">
+
+    <header class="viewer-header">
+        <button class="back-btn" onclick="window.location.href='vault.html'">← Back</button>
+        <h1 class="viewer-title" id="viewer-title">Document</h1>
+        <div class="viewer-spacer"></div>
+    </header>
+
+    <main class="viewer-main">
+        <div class="viewer-content" id="viewer-content">
+            <p class="loading-msg">Preparing document…</p>
+        </div>
+    </main>
+
+    <script src="js/config.js"></script>
+    <script src="js/crypto.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/protect.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/viewer.js"></script>
+    <script>
+        (async () => {
+            if (!await isAuthenticated()) {
+                window.location.href = 'index.html';
+            } else {
+                document.body.style.visibility = '';
+                loadDoc();
+            }
+        })();
+    </script>
+</body>
+</html>
