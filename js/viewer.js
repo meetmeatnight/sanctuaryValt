@@ -66,21 +66,28 @@ async function _loadFromIndexedDB(doc, ext) {
             showError('Could not decrypt file. Please log in again.');
             return;
         }
+        const sig = new Uint8Array(decrypted, 0, 5);
+        console.log('[viewer] decrypted OK —', decrypted.byteLength, 'bytes, first 5:', Array.from(sig).map(b => b.toString(16).padStart(2,'0')).join(' '));
         await _renderBuffer(decrypted, ext);
     } else {
         await _renderBuffer(rawData, ext);
     }
 }
 
-// Convert ArrayBuffer → Blob URL and render (no base64 overhead, no size limit)
+// Convert ArrayBuffer → renderable form
+// PDFs: pass bytes directly to PDF.js (avoids blob-URL cross-origin issues with the CDN worker)
+// Images: use blob URL (no worker involved)
 async function _renderBuffer(buf, ext) {
+    if (ext === 'pdf') {
+        await _renderPDF(new Uint8Array(buf));
+        return;
+    }
     const mime = extToMime(ext);
     const blob = new Blob([buf], { type: mime });
     const url  = URL.createObjectURL(blob);
     try {
         await _render(url, ext);
     } finally {
-        // Revoke after a short delay so the renderer has time to use it
         setTimeout(() => URL.revokeObjectURL(url), 60000);
     }
 }
