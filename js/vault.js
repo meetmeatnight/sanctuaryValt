@@ -851,9 +851,13 @@ const IMAGE_TYPES = new Set(['jpg','jpeg','png','gif','webp','avif','bmp']);
 function renderDocCard(doc) {
     const typeLabel  = (doc.type || 'file').toUpperCase();
     const coverClass = doc.coverClass || 'cover-1';
+    // Docs uploaded before the thumbnail feature existed have no doc.thumb yet — the
+    // placeholder still renders for any thumbnailable type so hydrateThumbnails() can
+    // backfill one for them the first time this card is seen, not just for new uploads.
+    const canThumbnail = !doc._static && (IMAGE_TYPES.has(doc.type || '') || doc.type === 'pdf');
     const coverImg   = doc.coverImage
         ? `<img src="${escHtml(doc.coverImage)}" alt="" draggable="false">`
-        : (doc.thumb ? `<img class="card-thumb-img" data-doc-id="${escHtml(doc.id)}" alt="" draggable="false" hidden>` : '');
+        : (canThumbnail ? `<img class="card-thumb-img" data-doc-id="${escHtml(doc.id)}" alt="" draggable="false" hidden>` : '');
     const admin      = isAdmin();
     const hidden     = doc.visible === false;
     return `
@@ -988,18 +992,59 @@ function _drawThumb(imgEl, srcW, srcH) {
 function hydrateThumbnails() {
     document.querySelectorAll('.card-thumb-img[data-doc-id]').forEach(async img => {
         const doc = vaultMeta.documents.find(d => d.id === img.dataset.docId);
-        if (!doc || !doc.thumb) return;
+        if (!doc) return;
+
+        if (doc.thumb) {
+            // Fast path: a cached thumbnail already exists — just decrypt and show it.
+            try {
+                let buf = _b64ToBuf(doc.thumb);
+                if (doc.thumbEncrypted) {
+                    const key = await loadKeyFromSession();
+                    if (!key) return;
+                    buf = await decryptBuf(key, buf);
+                }
+                img.src    = arrayBufferToDataUrl(buf, 'image/jpeg');
+                img.hidden = false;
+            } catch (e) {
+                console.warn('[thumb] decrypt failed for', doc.id, e);
+            }
+            return;
+        }
+
+        // Backfill path: uploaded before the thumbnail feature existed. Generate one now
+        // from the full file and save it, so this only ever has to happen once per document.
         try {
-            let buf = _b64ToBuf(doc.thumb);
-            if (doc.thumbEncrypted) {
+            const rawData = await retrieveFile(doc.storageKey);
+            if (!rawData) return;
+
+            let plainBuf;
+            if (typeof rawData === 'string') {
+                plainBuf = dataUrlToArrayBuffer(rawData); // legacy pre-encryption storage format
+            } else if (doc.encrypted) {
                 const key = await loadKeyFromSession();
                 if (!key) return;
-                buf = await decryptBuf(key, buf);
+                plainBuf = await decryptBuf(key, rawData);
+            } else {
+                plainBuf = rawData;
             }
-            img.src    = arrayBufferToDataUrl(buf, 'image/jpeg');
+
+            const thumbBuf = await _generateThumbnail(plainBuf, doc.type);
+            if (!thumbBuf) return;
+
+            const key = await loadKeyFromSession();
+            if (key) {
+                doc.thumb = _bufToB64(await encryptBuf(key, thumbBuf));
+                doc.thumbEncrypted = true;
+            } else {
+                doc.thumb = _bufToB64(thumbBuf);
+                doc.thumbEncrypted = false;
+            }
+            saveVaultMeta(vaultMeta);
+
+            img.src    = arrayBufferToDataUrl(thumbBuf, 'image/jpeg');
             img.hidden = false;
         } catch (e) {
-            console.warn('[thumb] decrypt failed for', doc.id, e);
+            console.warn('[thumb] backfill failed for', doc.id, e);
         }
     });
 }
