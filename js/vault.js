@@ -3,6 +3,7 @@ let vaultMeta       = { folders: [], documents: [] };
 let staticDocs      = [];
 
 const COVER_CYCLE = ['cover-1','cover-2','cover-3','cover-4','cover-5','cover-6'];
+const TRASH_RETENTION_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 
 async function initVault() {
     // Apply config background immediately (inline style resolves URL relative to document, not CSS file)
@@ -35,6 +36,7 @@ async function initVault() {
     // page on "Loading…" for the whole Firebase round-trip. Cloud sync (below) runs in the
     // background afterward and only re-renders if it actually finds something different.
     vaultMeta = getVaultMeta();
+    await purgeExpiredTrash();
     await applyStoredBackground();
 
     try { setupFolderModal();     } catch (e) { console.error('[init] setupFolderModal:', e); }
@@ -42,6 +44,7 @@ async function initVault() {
     try { setupComposeModal();    } catch (e) { console.error('[init] setupComposeModal:', e); }
     try { setupDeleteModal();     } catch (e) { console.error('[init] setupDeleteModal:', e); }
     try { setupMoveModal();       } catch (e) { console.error('[init] setupMoveModal:', e); }
+    try { setupTrashModal();      } catch (e) { console.error('[init] setupTrashModal:', e); }
     try { setupAdminPanel();      } catch (e) { console.error('[init] setupAdminPanel:', e); }
     try { setupBackgroundModal(); } catch (e) { console.error('[init] setupBackgroundModal:', e); }
     try { setupProfileMenu();     } catch (e) { console.error('[init] setupProfileMenu:', e); }
@@ -107,6 +110,7 @@ async function initVault() {
             }
 
             if (contentChanged) {
+                await purgeExpiredTrash();
                 await applyStoredBackground(); // a personal wallpaper pick may reference a doc that just arrived
                 renderBreadcrumb();
                 renderGrid();
@@ -125,12 +129,14 @@ function applyRolePermissions() {
     const navWrite     = document.getElementById('nav-write');
     const navBg        = document.getElementById('nav-background');
     const navHistory   = document.getElementById('nav-history');
+    const btnTrash     = document.getElementById('btn-trash');
     if (btnFolder)  btnFolder.hidden  = !admin;
     if (btnUpload)  btnUpload.hidden  = !admin;
     if (btnCompose) btnCompose.hidden = !admin;
     if (navWrite)   navWrite.hidden   = !admin;
     if (navBg)      navBg.hidden      = !admin;
     if (navHistory) navHistory.hidden = !admin;
+    if (btnTrash)   btnTrash.hidden   = !admin;
 }
 
 // ── Profile page (opened from the bottom nav's Profile tab) ─────────────────
@@ -789,8 +795,8 @@ function renderGrid() {
     const grid  = document.getElementById('docs-grid');
     const admin = isAdmin();
 
-    let subFolders = vaultMeta.folders.filter(f => f.parentId === currentFolderId);
-    let userDocs   = vaultMeta.documents.filter(d => d.folderId === currentFolderId);
+    let subFolders = vaultMeta.folders.filter(f => f.parentId === currentFolderId && !f.deletedAt);
+    let userDocs   = vaultMeta.documents.filter(d => d.folderId === currentFolderId && !d.deletedAt);
     if (!admin) {
         // Regular login only sees what admin has explicitly allowed.
         subFolders = subFolders.filter(f => f.visible !== false);
@@ -876,8 +882,8 @@ function renderFolderCard(folder) {
 }
 
 function countFolderContents(fid) {
-    return vaultMeta.folders.filter(f => f.parentId === fid).length +
-           vaultMeta.documents.filter(d => d.folderId === fid).length;
+    return vaultMeta.folders.filter(f => f.parentId === fid && !f.deletedAt).length +
+           vaultMeta.documents.filter(d => d.folderId === fid && !d.deletedAt).length;
 }
 
 const IMAGE_TYPES = new Set(['jpg','jpeg','png','gif','webp','avif','bmp']);
@@ -1308,7 +1314,7 @@ function openMoveModal(docId) {
     _pendingMoveDocId = docId;
 
     const list = document.getElementById('move-folder-list');
-    const options = [{ id: null, name: '— Root —' }, ...vaultMeta.folders.map(f => ({ id: f.id, name: f.name }))]
+    const options = [{ id: null, name: '— Root —' }, ...vaultMeta.folders.filter(f => !f.deletedAt).map(f => ({ id: f.id, name: f.name }))]
         .filter(o => o.id !== doc.folderId);
 
     if (!options.length) {
@@ -1344,7 +1350,7 @@ function setupMoveModal() {
 
 // ── Delete ────────────────────────────────────────────────────────────────────
 
-let _pendingDelete = null; // { type: 'doc'|'folder', id }
+let _pendingDelete = null; // { type: 'doc'|'folder'|'purge-doc'|'purge-folder', id }
 
 function setupDeleteModal() {
     const modal    = document.getElementById('modal-delete');
@@ -1388,8 +1394,10 @@ function setupDeleteModal() {
         closeModal();
         if (!pending) return;
 
-        if (pending.type === 'doc')    await _doDeleteDoc(pending.id);
-        if (pending.type === 'folder') await _doDeleteFolder(pending.id);
+        if (pending.type === 'doc')           _trashDoc(pending.id);
+        if (pending.type === 'folder')        _trashFolder(pending.id);
+        if (pending.type === 'purge-doc')     await _purgeDocForever(pending.id);
+        if (pending.type === 'purge-folder')  await _purgeFolderForever(pending.id);
     };
 
     confirmBtn.addEventListener('click', doDelete);
@@ -1414,7 +1422,7 @@ function deleteDoc(docId) {
     const doc = vaultMeta.documents.find(d => d.id === docId);
     if (!doc) return;
     _openDeleteModal('doc', docId,
-        `Delete "${doc.title || 'this document'}"? This cannot be undone.`);
+        `Move "${doc.title || 'this document'}" to Trash? It'll be recoverable there for 30 days.`);
 }
 
 function deleteFolder(folderId) {
@@ -1422,12 +1430,97 @@ function deleteFolder(folderId) {
     if (!folder) return;
     const count = countFolderContents(folderId);
     const msg   = count > 0
-        ? `Delete "${folder.name}" and all ${count} item(s) inside? This cannot be undone.`
-        : `Delete folder "${folder.name}"?`;
+        ? `Move "${folder.name}" and all ${count} item(s) inside to Trash? Recoverable there for 30 days.`
+        : `Move folder "${folder.name}" to Trash?`;
     _openDeleteModal('folder', folderId, msg);
 }
 
-async function _doDeleteDoc(docId) {
+// ── Soft delete (Trash) — marks items deletedAt instead of removing them, so
+// they show up in the Trash page and can be restored within TRASH_RETENTION_MS. ──
+
+function _trashDoc(docId) {
+    const doc = vaultMeta.documents.find(d => d.id === docId);
+    if (!doc) return;
+    doc.deletedAt = Date.now();
+    saveVaultMeta(vaultMeta);
+    renderGrid();
+    showToast('Moved to Trash');
+}
+
+function _trashFolder(folderId) {
+    const folder = vaultMeta.folders.find(f => f.id === folderId);
+    if (!folder) return;
+    const now = Date.now();
+    const markDescendants = fid => {
+        vaultMeta.folders.filter(f => f.parentId === fid).forEach(f => { f.deletedAt = now; markDescendants(f.id); });
+        vaultMeta.documents.filter(d => d.folderId === fid).forEach(d => { d.deletedAt = now; });
+    };
+    folder.deletedAt = now;
+    markDescendants(folderId);
+    saveVaultMeta(vaultMeta);
+    if (currentFolderId === folderId) currentFolderId = folder.parentId || null;
+    renderBreadcrumb();
+    renderGrid();
+    showToast('Moved to Trash');
+}
+
+// ── Trash — restore, or purge forever ────────────────────────────────────────
+
+function restoreDoc(docId) {
+    const doc = vaultMeta.documents.find(d => d.id === docId);
+    if (!doc) return;
+    delete doc.deletedAt;
+    _restoreAncestorChain(doc.folderId);
+    saveVaultMeta(vaultMeta);
+    renderGrid();
+    renderTrashList();
+    showToast('Restored');
+}
+
+function restoreFolder(folderId) {
+    const folder = vaultMeta.folders.find(f => f.id === folderId);
+    if (!folder) return;
+    delete folder.deletedAt;
+    _restoreAncestorChain(folder.parentId);
+    const restoreDescendants = fid => {
+        vaultMeta.folders.filter(f => f.parentId === fid).forEach(f => { delete f.deletedAt; restoreDescendants(f.id); });
+        vaultMeta.documents.filter(d => d.folderId === fid).forEach(d => { delete d.deletedAt; });
+    };
+    restoreDescendants(folderId);
+    saveVaultMeta(vaultMeta);
+    renderBreadcrumb();
+    renderGrid();
+    renderTrashList();
+    showToast('Restored');
+}
+
+// A restored item nested inside a still-trashed folder would otherwise vanish
+// from view again — bring back any deleted ancestor folders along with it.
+function _restoreAncestorChain(folderId) {
+    let fid = folderId;
+    while (fid) {
+        const folder = vaultMeta.folders.find(f => f.id === fid);
+        if (!folder) break;
+        if (folder.deletedAt) delete folder.deletedAt;
+        fid = folder.parentId;
+    }
+}
+
+function purgeDocForeverPrompt(docId) {
+    const doc = vaultMeta.documents.find(d => d.id === docId);
+    if (!doc) return;
+    _openDeleteModal('purge-doc', docId,
+        `Permanently delete "${doc.title || 'this document'}"? This cannot be undone.`);
+}
+
+function purgeFolderForeverPrompt(folderId) {
+    const folder = vaultMeta.folders.find(f => f.id === folderId);
+    if (!folder) return;
+    _openDeleteModal('purge-folder', folderId,
+        `Permanently delete "${folder.name}" and everything inside? This cannot be undone.`);
+}
+
+async function _purgeDocForever(docId) {
     const idx = vaultMeta.documents.findIndex(d => d.id === docId);
     if (idx === -1) return;
     const doc = vaultMeta.documents[idx];
@@ -1436,24 +1529,26 @@ async function _doDeleteDoc(docId) {
     vaultMeta.documents.splice(idx, 1);
     saveVaultMeta(vaultMeta);
     renderGrid();
-    showToast('Document deleted');
+    renderTrashList();
+    showToast('Permanently deleted');
 }
 
-async function _doDeleteFolder(folderId) {
+async function _purgeFolderForever(folderId) {
     const folder = vaultMeta.folders.find(f => f.id === folderId);
     if (!folder) return;
-    await _deleteFolderContents(folderId);
+    await _purgeFolderContents(folderId);
     vaultMeta.folders = vaultMeta.folders.filter(f => f.id !== folderId);
     saveVaultMeta(vaultMeta);
     if (currentFolderId === folderId) currentFolderId = folder.parentId || null;
     renderBreadcrumb();
     renderGrid();
-    showToast('Folder deleted');
+    renderTrashList();
+    showToast('Permanently deleted');
 }
 
-async function _deleteFolderContents(folderId) {
+async function _purgeFolderContents(folderId) {
     const subs = vaultMeta.folders.filter(f => f.parentId === folderId);
-    for (const sub of subs) await _deleteFolderContents(sub.id);
+    for (const sub of subs) await _purgeFolderContents(sub.id);
     vaultMeta.folders = vaultMeta.folders.filter(f => f.parentId !== folderId);
     const docs = vaultMeta.documents.filter(d => d.folderId === folderId);
     for (const doc of docs) {
@@ -1461,6 +1556,83 @@ async function _deleteFolderContents(folderId) {
         if (localStorage.getItem('sanctuary-bg') === doc.storageKey) localStorage.removeItem('sanctuary-bg');
     }
     vaultMeta.documents = vaultMeta.documents.filter(d => d.folderId !== folderId);
+}
+
+// Runs on load: anything sitting in Trash past TRASH_RETENTION_MS is gone for
+// good, the same way it would have been immediately before Trash existed.
+async function purgeExpiredTrash() {
+    const cutoff = Date.now() - TRASH_RETENTION_MS;
+    const expiredFolders = vaultMeta.folders.filter(f => f.deletedAt && f.deletedAt < cutoff && !vaultMeta.folders.some(p => p.id === f.parentId && p.deletedAt));
+    for (const folder of expiredFolders) await _purgeFolderContents(folder.id);
+    vaultMeta.folders = vaultMeta.folders.filter(f => !(f.deletedAt && f.deletedAt < cutoff));
+
+    const expiredDocs = vaultMeta.documents.filter(d => d.deletedAt && d.deletedAt < cutoff);
+    for (const doc of expiredDocs) {
+        if (doc.storageKey) try { await removeFile(doc.storageKey); } catch {}
+        if (localStorage.getItem('sanctuary-bg') === doc.storageKey) localStorage.removeItem('sanctuary-bg');
+    }
+    vaultMeta.documents = vaultMeta.documents.filter(d => !(d.deletedAt && d.deletedAt < cutoff));
+
+    if (expiredFolders.length || expiredDocs.length) saveVaultMeta(vaultMeta);
+}
+
+function _daysLeft(deletedAt) {
+    const days = Math.ceil((deletedAt + TRASH_RETENTION_MS - Date.now()) / (24 * 60 * 60 * 1000));
+    return Math.max(0, days);
+}
+
+function renderTrashList() {
+    const listEl = document.getElementById('trash-list');
+    if (!listEl) return;
+
+    const trashedFolders = vaultMeta.folders.filter(f => f.deletedAt).map(f => ({ ...f, _kind: 'folder' }));
+    const trashedDocs    = vaultMeta.documents.filter(d => d.deletedAt).map(d => ({ ...d, _kind: 'doc' }));
+    const items = [...trashedFolders, ...trashedDocs].sort((a, b) => b.deletedAt - a.deletedAt);
+
+    if (!items.length) {
+        listEl.innerHTML = '<p class="empty-state">Trash is empty.</p>';
+        return;
+    }
+
+    listEl.innerHTML = items.map(item => `
+        <div class="admin-login-row">
+            <div class="admin-login-top">
+                <span class="admin-login-role">${item._kind === 'folder' ? '📁 Folder' : '📄 Document'}</span>
+                <span class="admin-login-time">${_daysLeft(item.deletedAt)}d left</span>
+            </div>
+            <div class="admin-login-bottom">${escHtml(item._kind === 'folder' ? item.name : (item.title || 'Untitled'))}</div>
+            <div class="folder-actions">
+                <button class="card-action-btn" data-restore="${escHtml(item.id)}" data-kind="${item._kind}">Restore</button>
+                <button class="card-action-btn card-action-del" data-purge="${escHtml(item.id)}" data-kind="${item._kind}">Delete Permanently</button>
+            </div>
+        </div>
+    `).join('');
+
+    listEl.querySelectorAll('button[data-restore]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            if (btn.dataset.kind === 'folder') restoreFolder(btn.dataset.restore);
+            else restoreDoc(btn.dataset.restore);
+        });
+    });
+    listEl.querySelectorAll('button[data-purge]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            if (btn.dataset.kind === 'folder') purgeFolderForeverPrompt(btn.dataset.purge);
+            else purgeDocForeverPrompt(btn.dataset.purge);
+        });
+    });
+}
+
+function setupTrashModal() {
+    const btn      = document.getElementById('btn-trash');
+    const modal    = document.getElementById('modal-trash');
+    const closeBtn = document.getElementById('trash-modal-close');
+    if (!btn || !modal) return;
+
+    btn.addEventListener('click', () => {
+        modal.hidden = false;
+        renderTrashList();
+    });
+    closeBtn.addEventListener('click', () => { modal.hidden = true; });
 }
 
 // ── Admin Panel (login history) ──────────────────────────────────────────────

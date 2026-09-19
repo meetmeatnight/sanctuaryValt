@@ -6,7 +6,7 @@
     <meta name="robots" content="noindex, nofollow">
     <title>Our Sanctuary</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌹</text></svg>">
-    <link rel="stylesheet" href="css/style.css?v=20260920b">
+    <link rel="stylesheet" href="css/style.css?v=20260920c">
 
     <!-- Add to Home Screen — launches full-screen, without Safari's browser chrome -->
     <link rel="manifest" href="manifest.json">
@@ -170,6 +170,7 @@
                 </div>
             </div>
             <div class="profile-menu-items">
+                <button class="profile-menu-item" id="btn-trash" hidden>🗑&nbsp;&nbsp;Recently Deleted</button>
                 <button class="profile-menu-item profile-menu-item-danger" onclick="logout()">↪&nbsp;&nbsp;Sign out</button>
             </div>
         </div>
@@ -284,17 +285,31 @@
         </div>
     </div>
 
+    <!-- ── Trash Page ────────────────────────────────────────── -->
+    <div class="page-sheet" id="modal-trash" hidden>
+        <div class="page-sheet-header">
+            <button class="page-sheet-back" type="button" id="trash-modal-close" aria-label="Back">← Back</button>
+            <h2 class="page-sheet-title">Recently Deleted</h2>
+        </div>
+        <div class="page-sheet-body">
+            <p class="bg-preview-hint">Items stay here for 30 days before they're permanently gone.</p>
+            <div class="admin-login-list" id="trash-list">
+                <p class="empty-state">Trash is empty.</p>
+            </div>
+        </div>
+    </div>
+
     <!-- PDF.js — renders a page-1 thumbnail for uploaded PDFs -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <!-- jsPDF — typesets the "Write a Letter" composer into a PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="js/config.js?v=20260920b"></script>
-    <script src="js/crypto.js?v=20260920b"></script>
-    <script src="js/auth.js?v=20260920b"></script>
-    <script src="js/protect.js?v=20260920b"></script>
-    <script src="js/storage.js?v=20260920b"></script>
-    <script src="js/firebase.js?v=20260920b"></script>
-    <script src="js/vault.js?v=20260920b"></script>
+    <script src="js/config.js?v=20260920c"></script>
+    <script src="js/crypto.js?v=20260920c"></script>
+    <script src="js/auth.js?v=20260920c"></script>
+    <script src="js/protect.js?v=20260920c"></script>
+    <script src="js/storage.js?v=20260920c"></script>
+    <script src="js/firebase.js?v=20260920c"></script>
+    <script src="js/vault.js?v=20260920c"></script>
     <script>
         (async () => {
             if (!await isAuthenticated()) {
