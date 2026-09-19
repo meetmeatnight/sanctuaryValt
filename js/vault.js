@@ -67,7 +67,26 @@ async function initVault() {
 
             let contentChanged = false;
             if (cloudMeta) {
-                localStorage.setItem('sanctuary-vault', JSON.stringify(cloudMeta));
+                // A folder/document created here may not have made it to Firestore yet
+                // (closed the tab mid-upload, a dropped connection — pushes are fire-and-forget
+                // and don't retry). Blindly adopting cloud as-is would silently erase it the
+                // moment this device reconnects. Keep anything local-only and push it back up.
+                const localMetaBefore = getVaultMeta();
+                const cloudDocIds     = new Set((cloudMeta.documents || []).map(d => d.id));
+                const cloudFolderIds  = new Set((cloudMeta.folders   || []).map(f => f.id));
+                const localOnlyDocs    = (localMetaBefore.documents || []).filter(d => !cloudDocIds.has(d.id));
+                const localOnlyFolders = (localMetaBefore.folders   || []).filter(f => !cloudFolderIds.has(f.id));
+
+                let mergedMeta = cloudMeta;
+                if (localOnlyDocs.length || localOnlyFolders.length) {
+                    mergedMeta = {
+                        folders:   [...(cloudMeta.folders   || []), ...localOnlyFolders],
+                        documents: [...(cloudMeta.documents || []), ...localOnlyDocs]
+                    };
+                    fbPushMeta(mergedMeta).catch(() => {});
+                }
+
+                localStorage.setItem('sanctuary-vault', JSON.stringify(mergedMeta));
                 vaultMeta = getVaultMeta();
                 contentChanged = true;
             } else {
