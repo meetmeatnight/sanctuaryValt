@@ -9,19 +9,41 @@ async function hashPassword(password) {
 }
 
 async function login(password) {
-    if (!password || !CONFIG.passwordHash || CONFIG.passwordHash === 'REPLACE_WITH_YOUR_PASSWORD_HASH') {
-        console.warn('Password hash not configured. See js/config.js');
-        return false;
-    }
+    if (!password) return false;
 
     const hash = await hashPassword(password);
-    if (hash !== CONFIG.passwordHash) return false;
 
-    // Derive the AES encryption key from the plaintext password (PBKDF2, 200k iterations).
-    // This key CANNOT be computed from CONFIG.passwordHash alone.
-    const encKey = await deriveKey(password);
-    await saveKeyToSession(encKey); // stores base64(rawKey) as 'vaultKey'
+    // ── Regular login: view-only. Encryption key is derived directly from
+    // the password, exactly as before — existing files keep decrypting fine.
+    if (CONFIG.passwordHash && CONFIG.passwordHash !== 'REPLACE_WITH_YOUR_PASSWORD_HASH'
+        && hash === CONFIG.passwordHash) {
+        const encKey = await deriveKey(password);
+        await saveKeyToSession(encKey);
+        return _finishLogin('user');
+    }
 
+    // ── Admin login: upload/delete/login-history access. The admin password
+    // never sees the regular password, so instead of deriving its own
+    // (different) file key, it unwraps CONFIG.adminWrappedKey — the real
+    // vault key, pre-encrypted with the admin password by setup.html — so
+    // admin and regular logins end up sharing the exact same decryption key.
+    if (CONFIG.adminPasswordHash && CONFIG.adminWrappedKey && hash === CONFIG.adminPasswordHash) {
+        try {
+            const adminKey   = await deriveKey(password);
+            const wrappedBuf = _b64ToBuf(CONFIG.adminWrappedKey);
+            const masterRaw  = await decryptBuf(adminKey, wrappedBuf);
+            sessionStorage.setItem('vaultKey', _bufToB64(masterRaw));
+        } catch (e) {
+            console.warn('Admin credential misconfigured (adminWrappedKey). See js/config.js');
+            return false;
+        }
+        return _finishLogin('admin');
+    }
+
+    return false;
+}
+
+async function _finishLogin(role) {
     // Auth token = SHA-256(vaultKey + salt).
     // Knowing CONFIG.passwordHash does NOT let you compute this — you must know the plaintext
     // password to derive vaultKey first. Copying the hash from config.js is therefore useless.
@@ -29,8 +51,8 @@ async function login(password) {
     const authToken   = await hashPassword(vaultKeyB64 + ':sanctuary-auth:');
     sessionStorage.setItem('auth',   authToken);
     sessionStorage.setItem('authAt', Date.now().toString());
-
-    return true;
+    sessionStorage.setItem('role',   role);
+    return { role };
 }
 
 async function isAuthenticated() {
@@ -56,7 +78,67 @@ async function isAuthenticated() {
     return true;
 }
 
+function getRole() {
+    return sessionStorage.getItem('role') === 'admin' ? 'admin' : 'user';
+}
+
+function isAdmin() {
+    return getRole() === 'admin';
+}
+
+// Best-effort, human-readable "browser on OS" label for the login-history panel.
+// Not a security boundary — just enough to tell devices apart at a glance.
+function getDeviceLabel() {
+    const ua = navigator.userAgent || '';
+
+    let browser = 'Unknown browser';
+    if (/Edg\//.test(ua))                              browser = 'Edge';
+    else if (/OPR\//.test(ua) || /Opera/.test(ua))      browser = 'Opera';
+    else if (/Firefox\//.test(ua))                      browser = 'Firefox';
+    else if (/Chrome\//.test(ua))                       browser = 'Chrome';
+    else if (/Safari\//.test(ua))                       browser = 'Safari';
+
+    let os = 'Unknown OS';
+    if (/Windows/.test(ua))                             os = 'Windows';
+    else if (/iPhone|iPad|iPod/.test(ua))                os = 'iOS';
+    else if (/Android/.test(ua))                         os = 'Android';
+    else if (/Mac OS X/.test(ua))                        os = 'macOS';
+    else if (/Linux/.test(ua))                           os = 'Linux';
+
+    return `${browser} on ${os}`;
+}
+
+// The name typed on the login screen, remembered per browser so it doesn't
+// have to be retyped — shown next to the role in the admin login-history panel.
+function getLoginName() {
+    return localStorage.getItem('sanctuary-login-name') || '';
+}
+
+function setLoginName(name) {
+    if (name) localStorage.setItem('sanctuary-login-name', name);
+}
+
+// Best-effort IP + approximate location via a free, keyless IP-geolocation API.
+// Never blocks login — failures (offline, ad-blocker, rate limit) just omit the fields.
+async function getIpInfo() {
+    try {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 4000);
+        const res = await fetch('https://ipwho.is/', { signal: controller.signal });
+        clearTimeout(timer);
+        if (!res.ok) return null;
+        const data = await res.json();
+        if (!data || data.success === false) return null;
+        return {
+            ip:       data.ip || '',
+            location: [data.city, data.region, data.country].filter(Boolean).join(', ')
+        };
+    } catch {
+        return null;
+    }
+}
+
 function logout() {
-    sessionStorage.clear(); // clears auth, vaultKey, authAt
+    sessionStorage.clear(); // clears auth, vaultKey, authAt, role, loginLogged
     window.location.href = 'index.html';
 }

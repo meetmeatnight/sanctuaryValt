@@ -22,6 +22,15 @@
 
         <form id="login-form" class="gate-form" autocomplete="off">
             <input
+                type="text"
+                id="name-input"
+                class="password-field"
+                placeholder="your name"
+                autocomplete="name"
+                maxlength="40"
+                required
+            >
+            <input
                 type="password"
                 id="password-input"
                 class="password-field"
@@ -62,21 +71,24 @@
             if (await isAuthenticated()) {
                 window.location.href = 'vault.html';
             } else {
+                document.getElementById('name-input').value = getLoginName();
                 document.body.style.visibility = '';
             }
         })();
 
         document.getElementById('login-form').addEventListener('submit', async function(e) {
             e.preventDefault();
-            const btn = document.getElementById('enter-btn');
-            const err = document.getElementById('error-msg');
-            const pw  = document.getElementById('password-input').value;
+            const btn  = document.getElementById('enter-btn');
+            const err  = document.getElementById('error-msg');
+            const name = document.getElementById('name-input').value.trim();
+            const pw   = document.getElementById('password-input').value;
 
             btn.disabled = true;
             btn.innerHTML = '<span>Unlocking…</span>';
             err.hidden = true;
 
             const ok = await login(pw);
+            if (ok) setLoginName(name);
 
             if (ok) {
                 document.body.classList.add('unlocking');

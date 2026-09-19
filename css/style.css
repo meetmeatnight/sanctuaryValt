@@ -263,6 +263,12 @@ header, main, footer, .gate-card {
 
 .brand-ornament { color: var(--amber); }
 
+.vault-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
 .logout-btn {
     background: transparent;
     border: 1px solid rgba(255, 255, 255, 0.12);
@@ -399,6 +405,41 @@ header, main, footer, .gate-card {
     margin-right: 0.4rem;
     color: rgba(224, 112, 112, 0.55);
     border-color: rgba(200, 70, 70, 0.2);
+}
+
+.card-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.folder-visibility-btn,
+.card-action-visibility {
+    margin-right: 0.4rem;
+    color: rgba(150, 190, 150, 0.75);
+    border-color: rgba(110, 170, 110, 0.25);
+}
+
+.card-action-visibility { margin-right: 0; }
+
+.folder-visibility-btn:hover,
+.card-action-visibility:hover {
+    color: #8FD98F;
+    border-color: rgba(110, 170, 110, 0.6);
+    background: rgba(110, 170, 110, 0.08);
+}
+
+.folder-visibility-btn.is-hidden,
+.card-action-visibility.is-hidden {
+    color: rgba(200, 160, 90, 0.8);
+    border-color: rgba(192, 136, 80, 0.3);
+}
+
+.folder-visibility-btn.is-hidden:hover,
+.card-action-visibility.is-hidden:hover {
+    color: var(--amber);
+    border-color: rgba(192, 136, 80, 0.6);
+    background: rgba(192, 136, 80, 0.08);
 }
 
 .card-bg-btn {
@@ -833,6 +874,62 @@ header, main, footer, .gate-card {
     width: 100%;
     max-width: 400px;
     box-shadow: 0 32px 64px rgba(0, 0, 0, 0.65);
+}
+
+.modal-card-wide {
+    max-width: 560px;
+}
+
+.admin-login-list {
+    max-height: 60vh;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.admin-login-row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    padding: 0.65rem 0.8rem;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.admin-login-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.admin-login-role {
+    font-family: var(--font-u);
+    font-size: 0.65rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 0.2rem 0.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    color: var(--muted);
+    flex-shrink: 0;
+}
+
+.admin-login-role-admin {
+    color: var(--amber);
+    border-color: rgba(192, 136, 80, 0.4);
+}
+
+.admin-login-time {
+    color: var(--muted);
+    font-size: 0.75rem;
+    white-space: nowrap;
+}
+
+.admin-login-bottom {
+    color: var(--cream);
+    opacity: 0.8;
+    font-size: 0.8rem;
 }
 
 .modal-head {

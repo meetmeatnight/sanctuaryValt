@@ -19,7 +19,7 @@ async function initFirebase() {
         const [
             { initializeApp },
             { getAuth, signInWithEmailAndPassword },
-            { getFirestore, doc, getDoc, setDoc, deleteDoc, collection, getDocs }
+            { getFirestore, doc, getDoc, setDoc, deleteDoc, collection, getDocs, query, orderBy, limit }
         ] = await Promise.all([
             import('https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js'),
             import('https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js'),
@@ -32,7 +32,7 @@ async function initFirebase() {
 
         await signInWithEmailAndPassword(auth, CONFIG.firebaseEmail, CONFIG.firebasePassword);
 
-        _fb = { db, doc, getDoc, setDoc, deleteDoc, collection, getDocs };
+        _fb = { db, doc, getDoc, setDoc, deleteDoc, collection, getDocs, query, orderBy, limit };
         console.log('[firebase] connected (Firestore-only mode)');
         return true;
     } catch (err) {
@@ -118,6 +118,29 @@ async function fbPullFile(key) {
         }
         return result.buffer;
     } catch (e) { console.error('[firebase] fbPullFile:', e); return null; }
+}
+
+// ── Login history (admin panel) ────────────────────────────────────────────
+
+async function fbLogLogin(entry) {
+    if (!_fb) return;
+    try {
+        const ref = _fb.doc(_fb.collection(_fb.db, 'logins')); // auto-generated ID
+        await _fb.setDoc(ref, entry);
+    } catch (e) { console.error('[firebase] fbLogLogin:', e); }
+}
+
+async function fbGetLogins(max) {
+    if (!_fb) return [];
+    try {
+        const q = _fb.query(
+            _fb.collection(_fb.db, 'logins'),
+            _fb.orderBy('at', 'desc'),
+            _fb.limit(max || 200)
+        );
+        const snap = await _fb.getDocs(q);
+        return snap.docs.map(d => d.data());
+    } catch (e) { console.error('[firebase] fbGetLogins:', e); return []; }
 }
 
 async function fbDeleteFile(key) {

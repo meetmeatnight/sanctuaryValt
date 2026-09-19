@@ -17,7 +17,10 @@
             <span class="brand-ornament">❧</span>
             <span class="brand-title">Our Sanctuary</span>
         </div>
-        <button class="logout-btn" onclick="logout()">Sign out</button>
+        <div class="vault-header-actions">
+            <button class="action-btn" id="btn-admin-panel" hidden>Login History</button>
+            <button class="logout-btn" onclick="logout()">Sign out</button>
+        </div>
     </header>
 
     <main class="vault-main">
@@ -115,14 +118,28 @@
             </div>
             <p class="modal-delete-msg" id="delete-msg"></p>
             <div class="modal-field">
-                <label class="modal-label" for="delete-password">Enter your password to confirm</label>
+                <label class="modal-label" for="delete-password">Enter the admin password to confirm</label>
                 <input type="password" id="delete-password" class="modal-input"
-                    placeholder="your password" autocomplete="off">
+                    placeholder="admin password" autocomplete="off">
             </div>
             <p class="modal-error" id="delete-error" hidden></p>
             <div class="modal-actions">
                 <button class="modal-btn" id="delete-cancel">Cancel</button>
                 <button class="modal-btn modal-btn-danger" id="delete-confirm">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Admin Panel Modal (login history) ─────────────── -->
+    <div class="modal-overlay" id="modal-admin" hidden
+         role="dialog" aria-modal="true" aria-labelledby="modal-admin-title">
+        <div class="modal-card modal-card-wide">
+            <div class="modal-head">
+                <h3 class="modal-title" id="modal-admin-title">Login History</h3>
+                <button class="modal-close" type="button" id="admin-modal-close" aria-label="Close">✕</button>
+            </div>
+            <div class="admin-login-list" id="admin-login-list">
+                <p class="loading-msg">Loading login history…</p>
             </div>
         </div>
     </div>

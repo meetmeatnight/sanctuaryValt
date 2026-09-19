@@ -542,10 +542,59 @@
 
     <div class="section-sep">· · ·</div>
 
-    <!-- ── Section 2: Encrypt File ────────────────────── -->
+    <!-- ── Section 2: Admin Credential ──────────────────── -->
     <div class="section-card">
         <div class="section-header">
             <div class="section-badge">02</div>
+            <div class="section-titles">
+                <div class="section-eyebrow">Roles</div>
+                <h2 class="section-title">Generate Admin Credential</h2>
+            </div>
+        </div>
+
+        <p class="section-desc">
+            Optional. Creates a second, separate password that can upload, delete, and view the
+            login history — while the password above stays view-only. Enter your regular vault
+            password (from Section 1) plus a new admin password; this tool wraps the same file
+            encryption key so the admin login can still open every existing document.
+        </p>
+
+        <form id="admin-form">
+            <div class="field">
+                <label class="field-label" for="admin-vault-pw">Your regular vault password</label>
+                <input type="password" id="admin-vault-pw" placeholder="the password from Section 1" autocomplete="off" required>
+            </div>
+            <div class="field">
+                <label class="field-label" for="admin-pw">New admin password</label>
+                <input type="password" id="admin-pw" placeholder="Enter admin password" autocomplete="new-password" required>
+            </div>
+            <div class="field">
+                <label class="field-label" for="admin-pw2">Confirm admin password</label>
+                <input type="password" id="admin-pw2" placeholder="Confirm admin password" autocomplete="new-password" required>
+            </div>
+            <p class="msg-error" id="admin-err" hidden></p>
+            <button type="submit" class="btn-primary">Generate Admin Credential</button>
+        </form>
+
+        <div class="result-panel" id="admin-result" hidden>
+            <div class="result-label">adminPasswordHash</div>
+            <div class="hash-value" id="admin-hash-out"></div>
+            <div class="result-label" style="margin-top:0.9rem;">adminWrappedKey</div>
+            <div class="hash-value" id="admin-wrapped-out"></div>
+            <button class="btn-ghost" id="copy-admin-btn" onclick="copyAdminValues()">Copy both</button>
+            <div class="result-instructions">
+                Open <code>js/config.js</code> and set <code>adminPasswordHash</code> and
+                <code>adminWrappedKey</code> to the values above. Save the file, then redeploy.
+            </div>
+        </div>
+    </div>
+
+    <div class="section-sep">· · ·</div>
+
+    <!-- ── Section 3: Encrypt File ────────────────────── -->
+    <div class="section-card">
+        <div class="section-header">
+            <div class="section-badge">03</div>
             <div class="section-titles">
                 <div class="section-eyebrow">Static Documents</div>
                 <h2 class="section-title">Encrypt a File</h2>
@@ -582,10 +631,10 @@
 
     <div class="section-sep">· · ·</div>
 
-    <!-- ── Section 3: Firebase ────────────────────────── -->
+    <!-- ── Section 4: Firebase ────────────────────────── -->
     <div class="section-card">
         <div class="section-header">
-            <div class="section-badge">03</div>
+            <div class="section-badge">04</div>
             <div class="section-titles">
                 <div class="section-eyebrow">Cross-Device Sync</div>
                 <h2 class="section-title">Firebase Setup</h2>
@@ -713,6 +762,77 @@ service cloud.firestore {
         const text = document.getElementById('hash-out').textContent;
         navigator.clipboard.writeText(text).then(function() {
             const btn = document.getElementById('copy-hash-btn');
+            const prev = btn.textContent;
+            btn.textContent = 'Copied!';
+            setTimeout(function() { btn.textContent = prev; }, 2000);
+        });
+    }
+
+    // ── Admin credential ─────────────────────────────────────────────
+    const _ADMIN_SALT = new TextEncoder().encode('sanctuary-vault-v1');
+
+    async function deriveVaultKey(password, extractable, usages) {
+        const km = await crypto.subtle.importKey(
+            'raw', new TextEncoder().encode(password), 'PBKDF2', false, ['deriveKey']
+        );
+        return crypto.subtle.deriveKey(
+            { name: 'PBKDF2', salt: _ADMIN_SALT, iterations: 200000, hash: 'SHA-256' },
+            km,
+            { name: 'AES-GCM', length: 256 },
+            extractable, usages
+        );
+    }
+
+    function _bufToB64(buf) {
+        const bytes = new Uint8Array(buf);
+        let str = '';
+        for (let i = 0; i < bytes.length; i++) str += String.fromCharCode(bytes[i]);
+        return btoa(str);
+    }
+
+    document.getElementById('admin-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const vaultPw = document.getElementById('admin-vault-pw').value;
+        const adminPw = document.getElementById('admin-pw').value;
+        const adminPw2 = document.getElementById('admin-pw2').value;
+        const err = document.getElementById('admin-err');
+
+        if (adminPw !== adminPw2) {
+            err.textContent = 'Admin passwords do not match.';
+            err.hidden = false;
+            return;
+        }
+        if (adminPw === vaultPw) {
+            err.textContent = 'Admin password should be different from your regular password.';
+            err.hidden = false;
+            return;
+        }
+        err.hidden = true;
+
+        // The regular password's derived key IS the file encryption key — wrap it so the
+        // admin password can unlock the same key without ever knowing the regular password.
+        const masterKey = await deriveVaultKey(vaultPw, true, ['encrypt', 'decrypt']);
+        const masterRaw = await crypto.subtle.exportKey('raw', masterKey);
+
+        const adminKey = await deriveVaultKey(adminPw, false, ['encrypt']);
+        const iv  = crypto.getRandomValues(new Uint8Array(12));
+        const ct  = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, adminKey, masterRaw);
+        const wrapped = new Uint8Array(12 + ct.byteLength);
+        wrapped.set(iv);
+        wrapped.set(new Uint8Array(ct), 12);
+
+        const adminHash = await sha256(adminPw);
+        document.getElementById('admin-hash-out').textContent = adminHash;
+        document.getElementById('admin-wrapped-out').textContent = _bufToB64(wrapped);
+        document.getElementById('admin-result').hidden = false;
+    });
+
+    function copyAdminValues() {
+        const hash = document.getElementById('admin-hash-out').textContent;
+        const wrapped = document.getElementById('admin-wrapped-out').textContent;
+        const text = "adminPasswordHash: '" + hash + "',\nadminWrappedKey:   '" + wrapped + "',";
+        navigator.clipboard.writeText(text).then(function() {
+            const btn = document.getElementById('copy-admin-btn');
             const prev = btn.textContent;
             btn.textContent = 'Copied!';
             setTimeout(function() { btn.textContent = prev; }, 2000);

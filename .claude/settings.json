@@ -3,7 +3,10 @@
     "allow": [
       "Skill(artifact-design)",
       "Skill(artifact-design:*)",
-      "Bash(node -e \"const crypto=require\\('crypto'\\); console.log\\(crypto.createHash\\('sha256'\\).update\\('sahil8912'\\).digest\\('hex'\\)\\);\")"
+      "Bash(node -e \"const crypto=require\\('crypto'\\); console.log\\(crypto.createHash\\('sha256'\\).update\\('sahil8912'\\).digest\\('hex'\\)\\);\")",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)"
     ]
   }
 }

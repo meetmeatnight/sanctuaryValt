@@ -53,8 +53,40 @@ async function initVault() {
     try { setupFolderModal();  } catch (e) { console.error('[init] setupFolderModal:', e); }
     try { setupUploadModal();  } catch (e) { console.error('[init] setupUploadModal:', e); }
     try { setupDeleteModal();  } catch (e) { console.error('[init] setupDeleteModal:', e); }
+    try { setupAdminPanel();   } catch (e) { console.error('[init] setupAdminPanel:', e); }
+    applyRolePermissions();
+    logLoginOnce();
     renderBreadcrumb();
     renderGrid();
+}
+
+// ── Role permissions ─────────────────────────────────────────────────────────
+
+function applyRolePermissions() {
+    const admin = isAdmin();
+    const btnFolder = document.getElementById('btn-new-folder');
+    const btnUpload = document.getElementById('btn-upload');
+    const btnAdmin  = document.getElementById('btn-admin-panel');
+    if (btnFolder) btnFolder.hidden = !admin;
+    if (btnUpload) btnUpload.hidden = !admin;
+    if (btnAdmin)  btnAdmin.hidden  = !admin;
+}
+
+// Records this session's login (name, role, device, IP, location) once, for the admin login-history panel.
+async function logLoginOnce() {
+    if (sessionStorage.getItem('loginLogged') === '1') return;
+    sessionStorage.setItem('loginLogged', '1');
+    if (typeof fbLogLogin !== 'function') return;
+
+    const ipInfo = await getIpInfo(); // null if offline/blocked — logged in without it
+    fbLogLogin({
+        at:       Date.now(),
+        role:     getRole(),
+        name:     getLoginName(),
+        device:   getDeviceLabel(),
+        ip:       ipInfo?.ip || '',
+        location: ipInfo?.location || ''
+    }).catch(() => {});
 }
 
 // Sets background directly on .bg-layer so URL resolves relative to document, not stylesheet
@@ -155,11 +187,17 @@ function navigateTo(folderId) {
 // ── Grid ────────────────────────────────────────────────────────────────────
 
 function renderGrid() {
-    const grid = document.getElementById('docs-grid');
+    const grid  = document.getElementById('docs-grid');
+    const admin = isAdmin();
 
-    const subFolders      = vaultMeta.folders.filter(f => f.parentId === currentFolderId);
-    const userDocs        = vaultMeta.documents.filter(d => d.folderId === currentFolderId);
-    const visibleStatic   = currentFolderId === null ? staticDocs : [];
+    let subFolders = vaultMeta.folders.filter(f => f.parentId === currentFolderId);
+    let userDocs   = vaultMeta.documents.filter(d => d.folderId === currentFolderId);
+    if (!admin) {
+        // Regular login only sees what admin has explicitly allowed.
+        subFolders = subFolders.filter(f => f.visible !== false);
+        userDocs   = userDocs.filter(d => d.visible !== false);
+    }
+    const visibleStatic = currentFolderId === null ? staticDocs : [];
 
     if (!subFolders.length && !userDocs.length && !visibleStatic.length) {
         const msg = currentFolderId
@@ -173,19 +211,22 @@ function renderGrid() {
         subFolders.map(renderFolderCard).join('') +
         [...visibleStatic, ...userDocs].map(renderDocCard).join('');
 
-    // Folder: navigate on card click, but not if the delete button was clicked
+    // Folder: navigate on card click, but not if an action button was clicked
     grid.querySelectorAll('.folder-card').forEach(card => {
         card.addEventListener('click', e => {
-            if (e.target.closest('.folder-del-btn')) return;
+            if (e.target.closest('.folder-del-btn') || e.target.closest('.folder-visibility-btn')) return;
             navigateTo(card.dataset.fid);
         });
     });
     grid.querySelectorAll('.folder-del-btn').forEach(btn => {
         btn.addEventListener('click', e => { e.stopPropagation(); deleteFolder(btn.dataset.fid); });
     });
+    grid.querySelectorAll('.folder-visibility-btn[data-fid]').forEach(btn => {
+        btn.addEventListener('click', e => { e.stopPropagation(); toggleFolderVisibility(btn.dataset.fid); });
+    });
     grid.querySelectorAll('.doc-card').forEach(card => {
         card.addEventListener('click', e => {
-            if (e.target.closest('.card-action-del')) return;
+            if (e.target.closest('.card-action-del') || e.target.closest('.card-action-visibility')) return;
             openDoc(card.dataset.docId);
         });
     });
@@ -195,11 +236,16 @@ function renderGrid() {
     grid.querySelectorAll('.card-action-del[data-doc-id]').forEach(btn => {
         btn.addEventListener('click', e => { e.stopPropagation(); deleteDoc(btn.dataset.docId); });
     });
+    grid.querySelectorAll('.card-action-visibility[data-doc-id]').forEach(btn => {
+        btn.addEventListener('click', e => { e.stopPropagation(); toggleDocVisibility(btn.dataset.docId); });
+    });
 }
 
 function renderFolderCard(folder) {
-    const count = countFolderContents(folder.id);
-    const hint  = count === 1 ? '1 item' : `${count} items`;
+    const count  = countFolderContents(folder.id);
+    const hint   = count === 1 ? '1 item' : `${count} items`;
+    const admin  = isAdmin();
+    const hidden = folder.visible === false;
     return `
         <article class="folder-card" data-fid="${escHtml(folder.id)}">
             <div class="folder-icon">
@@ -212,7 +258,8 @@ function renderFolderCard(folder) {
                 <h3 class="folder-name">${escHtml(folder.name)}</h3>
                 <span class="folder-meta">${escHtml(hint)} · ${escHtml(folder.date || '')}</span>
             </div>
-            <button class="card-action-btn card-action-del folder-del-btn" data-fid="${escHtml(folder.id)}">Delete</button>
+            ${admin ? `<button class="card-action-btn folder-visibility-btn${hidden ? ' is-hidden' : ''}" data-fid="${escHtml(folder.id)}" title="Toggle visibility for the regular login">${hidden ? '🙈 Hidden' : '👁 Shown'}</button>` : ''}
+            ${admin ? `<button class="card-action-btn card-action-del folder-del-btn" data-fid="${escHtml(folder.id)}">Delete</button>` : ''}
             <span class="folder-arrow">›</span>
         </article>
     `.trim();
@@ -229,6 +276,8 @@ function renderDocCard(doc) {
     const typeLabel  = (doc.type || 'file').toUpperCase();
     const coverClass = doc.coverClass || 'cover-1';
     const coverImg   = doc.coverImage ? `<img src="${escHtml(doc.coverImage)}" alt="" draggable="false">` : '';
+    const admin      = isAdmin();
+    const hidden     = doc.visible === false;
     return `
         <article class="doc-card" data-doc-id="${escHtml(doc.id)}">
             <div class="card-cover ${escHtml(coverClass)}">
@@ -241,7 +290,12 @@ function renderDocCard(doc) {
                 <p class="card-desc">${escHtml(doc.description || '')}</p>
                 <div class="card-footer">
                     <span class="card-date">${escHtml(doc.date || '')}</span>
-                    ${!doc._static ? `<button class="card-action-btn card-action-del" data-doc-id="${escHtml(doc.id)}">Delete</button>` : ''}
+                    ${!doc._static && admin ? `
+                        <div class="card-actions">
+                            <button class="card-action-btn card-action-visibility${hidden ? ' is-hidden' : ''}" data-doc-id="${escHtml(doc.id)}" title="Toggle visibility for the regular login">${hidden ? '🙈 Hidden' : '👁 Shown'}</button>
+                            <button class="card-action-btn card-action-del" data-doc-id="${escHtml(doc.id)}">Delete</button>
+                        </div>
+                    ` : ''}
                 </div>
             </div>
         </article>
@@ -279,7 +333,8 @@ function setupFolderModal() {
             id:       genId(),
             name,
             parentId: currentFolderId,
-            date:     formatDate(Date.now())
+            date:     formatDate(Date.now()),
+            visible:  false // hidden from the regular login until admin allows it
         };
         vaultMeta.folders.push(folder);
         saveVaultMeta(vaultMeta);
@@ -417,7 +472,8 @@ async function saveUpload() {
             storageKey,
             encrypted,
             date:        formatDate(Date.now()),
-            coverClass:  COVER_CYCLE[vaultMeta.documents.length % COVER_CYCLE.length]
+            coverClass:  COVER_CYCLE[vaultMeta.documents.length % COVER_CYCLE.length],
+            visible:     false // hidden from the regular login until admin allows it
         };
 
         console.log('[save] step 5 — saving metadata to localStorage');
@@ -446,7 +502,7 @@ async function saveUpload() {
         } else {
             document.getElementById('docs-grid')?.scrollIntoView({ behavior: 'smooth' });
         }
-        showToast('✓  Document saved');
+        showToast('✓  Saved — hidden until you tap "Hidden" to allow others to see it');
 
     } catch (err) {
         console.error('[save] FAILED at step above:', err);
@@ -469,6 +525,28 @@ function escHtml(str) {
         .replace(/</g,  '&lt;')
         .replace(/>/g,  '&gt;')
         .replace(/"/g,  '&quot;');
+}
+
+// ── Visibility (per-file/folder access control) ─────────────────────────────
+
+function toggleDocVisibility(docId) {
+    const doc = vaultMeta.documents.find(d => d.id === docId);
+    if (!doc) return;
+    const isVisible = doc.visible !== false;
+    doc.visible = !isVisible;
+    saveVaultMeta(vaultMeta);
+    renderGrid();
+    showToast(doc.visible ? 'Now visible to everyone' : 'Hidden from others');
+}
+
+function toggleFolderVisibility(folderId) {
+    const folder = vaultMeta.folders.find(f => f.id === folderId);
+    if (!folder) return;
+    const isVisible = folder.visible !== false;
+    folder.visible = !isVisible;
+    saveVaultMeta(vaultMeta);
+    renderGrid();
+    showToast(folder.visible ? 'Now visible to everyone' : 'Hidden from others');
 }
 
 // ── Delete ────────────────────────────────────────────────────────────────────
@@ -495,7 +573,7 @@ function setupDeleteModal() {
     const doDelete = async () => {
         const pw = pwInput.value;
         if (!pw) {
-            errorEl.textContent = 'Please enter your password.';
+            errorEl.textContent = 'Please enter the admin password.';
             errorEl.hidden = false;
             return;
         }
@@ -505,9 +583,8 @@ function setupDeleteModal() {
         confirmBtn.disabled = false;
         confirmBtn.textContent = 'Delete';
 
-        const SUPERADMIN_HASH = 'e464334849bdaba51d255d247e0d8704d779d1398a0352d0257fb0bda4768e91';
-        if (hash !== CONFIG.passwordHash && hash !== SUPERADMIN_HASH) {
-            errorEl.textContent = 'Incorrect password.';
+        if (!CONFIG.adminPasswordHash || hash !== CONFIG.adminPasswordHash) {
+            errorEl.textContent = 'Incorrect admin password.';
             errorEl.hidden = false;
             pwInput.value = '';
             pwInput.focus();
@@ -591,6 +668,51 @@ async function _deleteFolderContents(folderId) {
         if (localStorage.getItem('sanctuary-bg') === doc.storageKey) localStorage.removeItem('sanctuary-bg');
     }
     vaultMeta.documents = vaultMeta.documents.filter(d => d.folderId !== folderId);
+}
+
+// ── Admin Panel (login history) ──────────────────────────────────────────────
+
+function setupAdminPanel() {
+    const btn      = document.getElementById('btn-admin-panel');
+    const modal    = document.getElementById('modal-admin');
+    const closeBtn = document.getElementById('admin-modal-close');
+    const listEl   = document.getElementById('admin-login-list');
+    if (!btn || !modal) return;
+
+    const closeModal = () => { modal.hidden = true; };
+
+    btn.addEventListener('click', async () => {
+        modal.hidden = false;
+        listEl.innerHTML = '<p class="loading-msg">Loading login history…</p>';
+
+        if (!isFirebaseConfigured()) {
+            listEl.innerHTML = '<p class="empty-state">Cross-device sync is not configured — login history is unavailable.</p>';
+            return;
+        }
+
+        const logins = await fbGetLogins();
+        if (!logins.length) {
+            listEl.innerHTML = '<p class="empty-state">No login history yet.</p>';
+            return;
+        }
+
+        listEl.innerHTML = logins.map(l => `
+            <div class="admin-login-row">
+                <div class="admin-login-top">
+                    <span class="admin-login-role admin-login-role-${escHtml(l.role || 'user')}">
+                        ${escHtml(l.role || 'user')}${l.name ? ' — ' + escHtml(l.name) : ''}
+                    </span>
+                    <span class="admin-login-time">${escHtml(l.at ? new Date(l.at).toLocaleString() : '')}</span>
+                </div>
+                <div class="admin-login-bottom">
+                    ${[l.device || 'Unknown device', l.ip, l.location].filter(Boolean).map(escHtml).join(' · ')}
+                </div>
+            </div>
+        `).join('');
+    });
+
+    closeBtn.addEventListener('click', closeModal);
+    modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
 }
 
 function closeUploadModal() {
