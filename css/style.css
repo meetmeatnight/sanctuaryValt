@@ -1195,6 +1195,13 @@ header, main, footer, .gate-card {
 
 .modal-field { margin-bottom: 1.1rem; }
 
+.bg-preview-wrap {
+    position: relative;
+    cursor: crosshair;
+    border-radius: var(--r-md);
+    overflow: hidden;
+}
+
 .bg-preview-img {
     display: block;
     width: 100%;
@@ -1203,6 +1210,26 @@ header, main, footer, .gate-card {
     border-radius: var(--r-md);
     border: 1px solid var(--glass-b);
     background: var(--card);
+}
+
+.bg-preview-marker {
+    position: absolute;
+    width: 24px;
+    height: 24px;
+    border: 2px solid var(--amber);
+    border-radius: 50%;
+    background: rgba(212, 168, 112, 0.25);
+    box-shadow: 0 0 0 2px rgba(14, 8, 16, 0.6);
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+}
+
+.bg-preview-hint {
+    font-family: var(--font-u);
+    font-size: 0.7rem;
+    color: var(--muted);
+    font-style: italic;
+    margin-top: 0.5rem;
 }
 
 .bg-history-grid {

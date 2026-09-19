@@ -221,7 +221,11 @@
             </div>
             <div class="modal-field">
                 <label class="modal-label">Current background</label>
-                <img id="bg-preview" alt="Current background" class="bg-preview-img">
+                <div class="bg-preview-wrap" id="bg-preview-wrap">
+                    <img id="bg-preview" alt="Current background" class="bg-preview-img">
+                    <div class="bg-preview-marker" id="bg-preview-marker" hidden></div>
+                </div>
+                <p class="bg-preview-hint">Tap the photo to choose what stays in view when the screen resizes.</p>
             </div>
             <div class="modal-field">
                 <label class="modal-label" for="bg-file-input">Replace with a new photo</label>

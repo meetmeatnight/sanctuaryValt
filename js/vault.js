@@ -8,8 +8,9 @@ async function initVault() {
     // Apply config background immediately (inline style resolves URL relative to document, not CSS file)
     if (CONFIG.backgroundImage) applyBgLayer(CONFIG.backgroundImage, CONFIG.backgroundPosition);
     // Admin-set global background overrides it, if one's been chosen (cached locally, refreshed below)
-    const cachedCustomBg = localStorage.getItem('sanctuary-custom-bg');
-    if (cachedCustomBg) applyBgLayer(cachedCustomBg);
+    const cachedCustomBg   = localStorage.getItem('sanctuary-custom-bg');
+    const cachedCustomBgPos = localStorage.getItem('sanctuary-custom-bg-position') || 'center';
+    if (cachedCustomBg) applyBgLayer(cachedCustomBg, cachedCustomBgPos);
 
     if (CONFIG.siteTitle) {
         document.title = CONFIG.siteTitle;
@@ -54,9 +55,10 @@ async function initVault() {
                 }
             }
 
-            if (cloudBg && cloudBg !== cachedCustomBg) {
-                localStorage.setItem('sanctuary-custom-bg', cloudBg);
-                applyBgLayer(cloudBg);
+            if (cloudBg && cloudBg.image !== cachedCustomBg) {
+                localStorage.setItem('sanctuary-custom-bg', cloudBg.image);
+                localStorage.setItem('sanctuary-custom-bg-position', cloudBg.position || 'center');
+                applyBgLayer(cloudBg.image, cloudBg.position || 'center');
             }
             if (cloudBgHistory && cloudBgHistory.length) {
                 saveBackgroundHistoryLocal(cloudBgHistory);
@@ -262,24 +264,62 @@ function saveBackgroundHistoryLocal(list) {
     localStorage.setItem('sanctuary-bg-history', JSON.stringify(list.slice(0, BG_HISTORY_MAX)));
 }
 
+// Upserts by image so repositioning an already-used photo updates its entry
+// instead of adding a duplicate with a different focal point.
+function _upsertBackgroundHistory(image, position) {
+    const history = getBackgroundHistory();
+    const idx = history.findIndex(h => h.image === image);
+    let id;
+    if (idx !== -1) {
+        id = history[idx].id;
+        history[idx] = { ...history[idx], position, at: Date.now() };
+    } else {
+        id = genId();
+        history.unshift({ id, image, position, at: Date.now() });
+    }
+    saveBackgroundHistoryLocal(history);
+    return id;
+}
+
 function setupBackgroundModal() {
-    const btn       = document.getElementById('btn-background');
-    const modal     = document.getElementById('modal-background');
+    const btn        = document.getElementById('btn-background');
+    const modal      = document.getElementById('modal-background');
     if (!btn || !modal) return;
 
-    const closeBtn  = document.getElementById('background-modal-close');
-    const preview   = document.getElementById('bg-preview');
-    const fileInput = document.getElementById('bg-file-input');
-    const zoneText  = document.getElementById('bg-upload-zone-text');
-    const zone      = document.getElementById('bg-upload-zone');
-    const errorEl   = document.getElementById('background-error');
-    const saveBtn   = document.getElementById('background-save');
-    const resetBtn  = document.getElementById('background-reset');
-
+    const closeBtn    = document.getElementById('background-modal-close');
+    const previewWrap = document.getElementById('bg-preview-wrap');
+    const preview     = document.getElementById('bg-preview');
+    const marker      = document.getElementById('bg-preview-marker');
+    const fileInput   = document.getElementById('bg-file-input');
+    const zoneText    = document.getElementById('bg-upload-zone-text');
+    const zone        = document.getElementById('bg-upload-zone');
+    const errorEl     = document.getElementById('background-error');
+    const saveBtn     = document.getElementById('background-save');
+    const resetBtn    = document.getElementById('background-reset');
     const historyGrid = document.getElementById('bg-history-grid');
 
     let pendingDataUrl = null;
+    let pendingPosition = 'center';
     const currentSrc = () => localStorage.getItem('sanctuary-custom-bg') || CONFIG.backgroundImage || '';
+
+    const setMarker = position => {
+        if (!marker) return;
+        const parts = (position || 'center').split(' ');
+        const x = parts[0] === 'center' ? 50 : (parseFloat(parts[0]) || 50);
+        const y = (!parts[1] || parts[1] === 'center') ? 50 : (parseFloat(parts[1]) || 50);
+        marker.style.left = x + '%';
+        marker.style.top  = y + '%';
+        marker.hidden = false;
+    };
+
+    previewWrap.addEventListener('click', e => {
+        const rect = preview.getBoundingClientRect();
+        if (!rect.width || !rect.height) return;
+        const x = Math.min(100, Math.max(0, ((e.clientX - rect.left) / rect.width) * 100));
+        const y = Math.min(100, Math.max(0, ((e.clientY - rect.top) / rect.height) * 100));
+        pendingPosition = `${x.toFixed(1)}% ${y.toFixed(1)}%`;
+        setMarker(pendingPosition);
+    });
 
     const renderHistory = () => {
         if (!historyGrid) return;
@@ -302,7 +342,7 @@ function setupBackgroundModal() {
             el.addEventListener('click', e => {
                 if (e.target.closest('.bg-history-thumb-del')) return;
                 const entry = history.find(h => h.id === el.dataset.id);
-                if (entry) selectFromHistory(entry.image);
+                if (entry) selectFromHistory(entry);
             });
         });
         historyGrid.querySelectorAll('.bg-history-thumb-del').forEach(delBtn => {
@@ -318,11 +358,16 @@ function setupBackgroundModal() {
         });
     };
 
-    const selectFromHistory = async image => {
-        localStorage.setItem('sanctuary-custom-bg', image);
-        applyBgLayer(image);
-        preview.src = image;
-        if (typeof fbPushBackground === 'function') await fbPushBackground(image).catch(() => {});
+    const selectFromHistory = async entry => {
+        const position = entry.position || 'center';
+        localStorage.setItem('sanctuary-custom-bg', entry.image);
+        localStorage.setItem('sanctuary-custom-bg-position', position);
+        applyBgLayer(entry.image, position);
+        preview.src = entry.image;
+        pendingDataUrl  = null;
+        pendingPosition = position;
+        setMarker(position);
+        if (typeof fbPushBackground === 'function') await fbPushBackground(entry.image, position).catch(() => {});
         showToast('✓  Background updated');
         renderHistory();
     };
@@ -334,6 +379,9 @@ function setupBackgroundModal() {
         if (zone) zone.classList.remove('has-file');
         if (errorEl) errorEl.hidden = true;
         preview.src = currentSrc();
+        pendingPosition = localStorage.getItem('sanctuary-custom-bg-position')
+            || (currentSrc() === CONFIG.backgroundImage ? (CONFIG.backgroundPosition || 'center') : 'center');
+        setMarker(pendingPosition);
         renderHistory();
         modal.hidden = false;
     };
@@ -347,8 +395,10 @@ function setupBackgroundModal() {
             try {
                 const buf  = dataUrlToArrayBuffer(ev.target.result);
                 const mime = extToMime(file.name.split('.').pop().toLowerCase());
-                pendingDataUrl = await _resizeImageDataUrl(buf, mime, 1600, 0.78);
+                pendingDataUrl  = await _resizeImageDataUrl(buf, mime, 1600, 0.78);
+                pendingPosition = 'center'; // new photo — old focal point wouldn't mean anything on it
                 preview.src = pendingDataUrl;
+                setMarker(pendingPosition);
                 if (zoneText) zoneText.textContent = '✓  ' + file.name;
                 if (zone) zone.classList.add('has-file');
                 if (errorEl) errorEl.hidden = true;
@@ -365,19 +415,19 @@ function setupBackgroundModal() {
     modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
 
     saveBtn.addEventListener('click', async () => {
-        if (!pendingDataUrl) { closeModal(); return; }
+        const image = pendingDataUrl || currentSrc();
+        if (!image) { closeModal(); return; }
         saveBtn.disabled    = true;
         saveBtn.textContent = 'Saving…';
         try {
-            const id = genId();
-            const history = [{ id, image: pendingDataUrl, at: Date.now() }, ...getBackgroundHistory()];
-            saveBackgroundHistoryLocal(history);
+            const id = _upsertBackgroundHistory(image, pendingPosition);
 
-            localStorage.setItem('sanctuary-custom-bg', pendingDataUrl);
-            applyBgLayer(pendingDataUrl);
+            localStorage.setItem('sanctuary-custom-bg', image);
+            localStorage.setItem('sanctuary-custom-bg-position', pendingPosition);
+            applyBgLayer(image, pendingPosition);
 
-            if (typeof fbPushBackground === 'function') await fbPushBackground(pendingDataUrl).catch(() => {});
-            if (typeof fbAddBackgroundHistory === 'function') await fbAddBackgroundHistory(id, pendingDataUrl).catch(() => {});
+            if (typeof fbPushBackground === 'function') await fbPushBackground(image, pendingPosition).catch(() => {});
+            if (typeof fbAddBackgroundHistory === 'function') await fbAddBackgroundHistory(id, image, pendingPosition).catch(() => {});
 
             showToast('✓  Background updated');
             closeModal();
@@ -389,8 +439,12 @@ function setupBackgroundModal() {
 
     resetBtn.addEventListener('click', async () => {
         localStorage.removeItem('sanctuary-custom-bg');
+        localStorage.removeItem('sanctuary-custom-bg-position');
         applyBgLayer(CONFIG.backgroundImage, CONFIG.backgroundPosition);
         preview.src = CONFIG.backgroundImage || '';
+        pendingDataUrl  = null;
+        pendingPosition = CONFIG.backgroundPosition || 'center';
+        setMarker(pendingPosition);
         if (typeof fbDeleteBackground === 'function') await fbDeleteBackground().catch(() => {});
         showToast('Background reset to default');
         renderHistory();

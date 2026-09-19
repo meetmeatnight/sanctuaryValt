@@ -122,18 +122,19 @@ async function fbPullFile(key) {
 
 // ── Site background (plaintext — shown pre-login, so it can't live inside the encrypted vault) ──
 
-async function fbPushBackground(dataUrl) {
+async function fbPushBackground(dataUrl, position) {
     if (!_fb) return;
     try {
-        await _fb.setDoc(_fb.doc(_fb.db, 'settings', 'background'), { image: dataUrl });
+        await _fb.setDoc(_fb.doc(_fb.db, 'settings', 'background'), { image: dataUrl, position: position || 'center' });
     } catch (e) { console.error('[firebase] fbPushBackground:', e); }
 }
 
+// Returns {image, position} so each photo keeps its own focal point, or null if none is set.
 async function fbPullBackground() {
     if (!_fb) return null;
     try {
         const snap = await _fb.getDoc(_fb.doc(_fb.db, 'settings', 'background'));
-        return snap.exists() ? snap.data().image : null;
+        return snap.exists() ? snap.data() : null;
     } catch (e) { console.error('[firebase] fbPullBackground:', e); return null; }
 }
 
@@ -146,10 +147,10 @@ async function fbDeleteBackground() {
 
 // Reusable gallery of past backgrounds — separate from the "current" pointer above,
 // so resetting to default or switching photos never loses previously used ones.
-async function fbAddBackgroundHistory(id, dataUrl) {
+async function fbAddBackgroundHistory(id, dataUrl, position) {
     if (!_fb) return;
     try {
-        await _fb.setDoc(_fb.doc(_fb.db, 'backgrounds', id), { image: dataUrl, at: Date.now() });
+        await _fb.setDoc(_fb.doc(_fb.db, 'backgrounds', id), { image: dataUrl, position: position || 'center', at: Date.now() });
     } catch (e) { console.error('[firebase] fbAddBackgroundHistory:', e); }
 }
 
