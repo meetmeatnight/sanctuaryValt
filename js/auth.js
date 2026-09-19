@@ -162,6 +162,12 @@ async function clearLocalVaultDataIfSignedOut() {
 }
 
 async function logout() {
+    // Give any just-made upload/edit a real chance to finish syncing to Firestore before
+    // the wipe below destroys the only local copy of it. Capped so a dead connection can't
+    // block signing out forever.
+    if (typeof flushPendingSyncs === 'function') {
+        await Promise.race([flushPendingSyncs(), new Promise(r => setTimeout(r, 5000))]);
+    }
     await clearLocalVaultDataIfSignedOut();
     sessionStorage.clear(); // still clear even in local-only mode (no Firebase configured)
     window.location.href = 'index.html';

@@ -2,6 +2,20 @@ const SANCTUARY_DB      = 'sanctuary-db';
 const SANCTUARY_DB_VER  = 1;
 const STORE_FILES       = 'files';
 
+// Tracks in-flight Firestore pushes so logout() can wait for them before wiping local
+// storage — otherwise a file/meta write still in flight when someone signs out could be
+// lost for good (local copy wiped, cloud copy never arrived).
+let _pendingSyncs = [];
+
+function _trackSync(promise) {
+    _pendingSyncs.push(promise);
+    promise.finally(() => { _pendingSyncs = _pendingSyncs.filter(p => p !== promise); });
+}
+
+async function flushPendingSyncs() {
+    await Promise.allSettled(_pendingSyncs);
+}
+
 function openDB() {
     return new Promise((resolve, reject) => {
         const req = indexedDB.open(SANCTUARY_DB, SANCTUARY_DB_VER);
@@ -29,7 +43,7 @@ async function storeFile(key, data) {
     });
     // Mirror to Firebase in background (fire-and-forget)
     if (typeof fbPushFile === 'function') {
-        fbPushFile(key, data).catch(e => console.error('[storage] fbPushFile:', e));
+        _trackSync(fbPushFile(key, data).catch(e => console.error('[storage] fbPushFile:', e)));
     }
 }
 
@@ -94,7 +108,7 @@ function saveVaultMeta(meta) {
     localStorage.setItem('sanctuary-vault', JSON.stringify(meta));
     // Mirror to Firestore in background
     if (typeof fbPushMeta === 'function') {
-        fbPushMeta(meta).catch(e => console.error('[storage] fbPushMeta:', e));
+        _trackSync(fbPushMeta(meta).catch(e => console.error('[storage] fbPushMeta:', e)));
     }
 }
 
