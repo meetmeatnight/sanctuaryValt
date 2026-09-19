@@ -248,19 +248,25 @@ function renderFolderCard(folder) {
     const hidden = folder.visible === false;
     return `
         <article class="folder-card" data-fid="${escHtml(folder.id)}">
-            <div class="folder-icon">
-                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M2 8C2 6.9 2.9 6 4 6H9.2L11 8H20C21.1 8 22 8.9 22 10V18C22 19.1 21.1 20 20 20H4C2.9 20 2 19.1 2 18V8Z" fill="currentColor" opacity="0.25"/>
-                    <path d="M2 10C2 8.9 2.9 8 4 8H20C21.1 8 22 8.9 22 10V18C22 19.1 21.1 20 20 20H4C2.9 20 2 19.1 2 18V10Z" fill="currentColor"/>
-                </svg>
+            <div class="folder-main">
+                <div class="folder-icon">
+                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M2 8C2 6.9 2.9 6 4 6H9.2L11 8H20C21.1 8 22 8.9 22 10V18C22 19.1 21.1 20 20 20H4C2.9 20 2 19.1 2 18V8Z" fill="currentColor" opacity="0.25"/>
+                        <path d="M2 10C2 8.9 2.9 8 4 8H20C21.1 8 22 8.9 22 10V18C22 19.1 21.1 20 20 20H4C2.9 20 2 19.1 2 18V10Z" fill="currentColor"/>
+                    </svg>
+                </div>
+                <div class="folder-info">
+                    <h3 class="folder-name">${escHtml(folder.name)}</h3>
+                    <span class="folder-meta">${escHtml(hint)} · ${escHtml(folder.date || '')}</span>
+                </div>
+                <span class="folder-arrow">›</span>
             </div>
-            <div class="folder-info">
-                <h3 class="folder-name">${escHtml(folder.name)}</h3>
-                <span class="folder-meta">${escHtml(hint)} · ${escHtml(folder.date || '')}</span>
-            </div>
-            ${admin ? `<button class="card-action-btn folder-visibility-btn${hidden ? ' is-hidden' : ''}" data-fid="${escHtml(folder.id)}" title="Toggle visibility for the regular login">${hidden ? '🙈 Hidden' : '👁 Shown'}</button>` : ''}
-            ${admin ? `<button class="card-action-btn card-action-del folder-del-btn" data-fid="${escHtml(folder.id)}">Delete</button>` : ''}
-            <span class="folder-arrow">›</span>
+            ${admin ? `
+                <div class="folder-actions">
+                    <button class="card-action-btn folder-visibility-btn${hidden ? ' is-hidden' : ''}" data-fid="${escHtml(folder.id)}" title="Toggle visibility for the regular login">${hidden ? '🙈 Hidden' : '👁 Shown'}</button>
+                    <button class="card-action-btn card-action-del folder-del-btn" data-fid="${escHtml(folder.id)}">Delete</button>
+                </div>
+            ` : ''}
         </article>
     `.trim();
 }

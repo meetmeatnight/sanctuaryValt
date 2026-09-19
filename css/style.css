@@ -402,7 +402,6 @@ header, main, footer, .gate-card {
 }
 
 .folder-del-btn {
-    margin-right: 0.4rem;
     color: rgba(224, 112, 112, 0.55);
     border-color: rgba(200, 70, 70, 0.2);
 }
@@ -415,12 +414,9 @@ header, main, footer, .gate-card {
 
 .folder-visibility-btn,
 .card-action-visibility {
-    margin-right: 0.4rem;
     color: rgba(150, 190, 150, 0.75);
     border-color: rgba(110, 170, 110, 0.25);
 }
-
-.card-action-visibility { margin-right: 0; }
 
 .folder-visibility-btn:hover,
 .card-action-visibility:hover {
@@ -797,10 +793,24 @@ header, main, footer, .gate-card {
     border: 1px solid rgba(192, 136, 80, 0.14);
     cursor: pointer;
     transition: transform 0.22s, box-shadow 0.22s, border-color 0.22s;
+    padding: 1.1rem 1.25rem;
+}
+
+.folder-main {
     display: flex;
     align-items: center;
     gap: 1rem;
-    padding: 1.1rem 1.25rem;
+}
+
+/* Admin-only row: kept separate from .folder-main so the visibility/delete
+   buttons never squeeze the folder name down to nothing on narrow screens. */
+.folder-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    margin-top: 0.7rem;
+    padding-top: 0.7rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .folder-card:hover {
