@@ -16,6 +16,37 @@ async function flushPendingSyncs() {
     await Promise.allSettled(_pendingSyncs);
 }
 
+// The real safety gate before any local wipe: confirms the current metadata and every
+// document's file are actually present in Firestore — not just "a push was attempted."
+// Returns false (never throws) if anything can't be confirmed, so the caller can choose
+// to skip wiping rather than risk destroying something that never made it to the cloud.
+async function ensureFullySynced() {
+    if (typeof initFirebase !== 'function') return true; // no Firebase configured — nothing to verify
+    try {
+        const fbOk = await initFirebase();
+        if (!fbOk) return false;
+
+        const meta = getVaultMeta();
+        await fbPushMeta(meta, true); // strict — throws if this write fails
+
+        for (const doc of meta.documents) {
+            if (!doc.storageKey) continue;
+            let exists = await fbFileManifestExists(doc.storageKey);
+            if (!exists) {
+                const rawData = await retrieveFile(doc.storageKey);
+                if (!rawData) return false; // not even available locally — can't back it up
+                await fbPushFile(doc.storageKey, rawData);
+                exists = await fbFileManifestExists(doc.storageKey);
+                if (!exists) return false;
+            }
+        }
+        return true;
+    } catch (e) {
+        console.error('[storage] ensureFullySynced failed:', e);
+        return false;
+    }
+}
+
 function openDB() {
     return new Promise((resolve, reject) => {
         const req = indexedDB.open(SANCTUARY_DB, SANCTUARY_DB_VER);

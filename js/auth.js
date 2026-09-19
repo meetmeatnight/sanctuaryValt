@@ -147,8 +147,30 @@ function _hasFirebaseConfig() {
 // lingers without a valid login. Firestore is untouched — next successful login re-syncs
 // it all back down. Only runs when Firebase sync is actually configured: otherwise this
 // device's storage IS the only copy of the vault, and wiping it would destroy it for good.
+//
+// Before wiping anything, this waits for in-flight syncs and then actually VERIFIES every
+// document's file is confirmed present in Firestore (ensureFullySynced, in storage.js) —
+// not just "a push was attempted." If that can't be confirmed, the wipe is skipped entirely
+// (only the session is cleared) rather than risk destroying something that never made it
+// to the cloud. This exists because that exact scenario has already caused real data loss.
 async function clearLocalVaultDataIfSignedOut() {
     if (!_hasFirebaseConfig()) return;
+
+    if (typeof flushPendingSyncs === 'function') {
+        await Promise.race([flushPendingSyncs(), new Promise(r => setTimeout(r, 5000))]);
+    }
+
+    if (typeof ensureFullySynced === 'function') {
+        const synced = await Promise.race([
+            ensureFullySynced(),
+            new Promise(resolve => setTimeout(() => resolve(false), 8000))
+        ]).catch(() => false);
+        if (!synced) {
+            console.warn('[wipe] Could not confirm everything is backed up to the cloud yet — skipping the local wipe this time.');
+            return;
+        }
+    }
+
     localStorage.clear();
     sessionStorage.clear();
     try {
@@ -162,13 +184,7 @@ async function clearLocalVaultDataIfSignedOut() {
 }
 
 async function logout() {
-    // Give any just-made upload/edit a real chance to finish syncing to Firestore before
-    // the wipe below destroys the only local copy of it. Capped so a dead connection can't
-    // block signing out forever.
-    if (typeof flushPendingSyncs === 'function') {
-        await Promise.race([flushPendingSyncs(), new Promise(r => setTimeout(r, 5000))]);
-    }
     await clearLocalVaultDataIfSignedOut();
-    sessionStorage.clear(); // still clear even in local-only mode (no Firebase configured)
+    sessionStorage.clear(); // still clear even in local-only mode, or if the wipe above was skipped
     window.location.href = 'index.html';
 }

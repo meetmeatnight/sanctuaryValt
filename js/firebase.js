@@ -43,11 +43,16 @@ async function initFirebase() {
 
 // ── Metadata ──────────────────────────────────────────────────────────────────
 
-async function fbPushMeta(meta) {
+// `strict` makes failures throw instead of being swallowed — used by ensureFullySynced()
+// (storage.js), which needs to actually know whether this succeeded before allowing a wipe.
+async function fbPushMeta(meta, strict) {
     if (!_fb) return;
     try {
         await _fb.setDoc(_fb.doc(_fb.db, 'vault', 'meta'), JSON.parse(JSON.stringify(meta)));
-    } catch (e) { console.error('[firebase] fbPushMeta:', e); }
+    } catch (e) {
+        console.error('[firebase] fbPushMeta:', e);
+        if (strict) throw e;
+    }
 }
 
 async function fbPullMeta() {
@@ -91,6 +96,16 @@ async function fbPushFile(key, data) {
         writes.push(_fb.setDoc(_fb.doc(_fb.db, 'files', key), { n: totalChunks, s: bytes.length }));
         await Promise.all(writes);
     } catch (e) { console.error('[firebase] fbPushFile:', e); }
+}
+
+// Cheap existence check — just the manifest doc, no chunk downloads. Used to verify a
+// file actually made it to the cloud before allowing the local copy to be wiped.
+async function fbFileManifestExists(key) {
+    if (!_fb) return false;
+    try {
+        const snap = await _fb.getDoc(_fb.doc(_fb.db, 'files', key));
+        return snap.exists();
+    } catch (e) { console.error('[firebase] fbFileManifestExists:', e); return false; }
 }
 
 async function fbPullFile(key) {
