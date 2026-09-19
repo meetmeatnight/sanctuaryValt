@@ -138,8 +138,31 @@ async function getIpInfo() {
     }
 }
 
-function logout() {
-    sessionStorage.clear(); // clears auth, vaultKey, authAt, role, loginLogged
-    localStorage.removeItem('sanctuary-login-name'); // don't carry the name past a logout
+function _hasFirebaseConfig() {
+    return !!(CONFIG.firebaseConfig && CONFIG.firebaseConfig.apiKey && CONFIG.firebaseEmail && CONFIG.firebasePassword);
+}
+
+// Wipes everything cached on this device (vault metadata, background settings, cached
+// file bytes, session) whenever the visitor isn't currently authenticated, so nothing
+// lingers without a valid login. Firestore is untouched — next successful login re-syncs
+// it all back down. Only runs when Firebase sync is actually configured: otherwise this
+// device's storage IS the only copy of the vault, and wiping it would destroy it for good.
+async function clearLocalVaultDataIfSignedOut() {
+    if (!_hasFirebaseConfig()) return;
+    localStorage.clear();
+    sessionStorage.clear();
+    try {
+        await new Promise(resolve => {
+            const req = indexedDB.deleteDatabase('sanctuary-db');
+            req.onsuccess = resolve;
+            req.onerror   = resolve;
+            req.onblocked = resolve;
+        });
+    } catch { /* best-effort */ }
+}
+
+async function logout() {
+    await clearLocalVaultDataIfSignedOut();
+    sessionStorage.clear(); // still clear even in local-only mode (no Firebase configured)
     window.location.href = 'index.html';
 }

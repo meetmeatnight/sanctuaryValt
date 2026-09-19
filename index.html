@@ -8,6 +8,14 @@
     <title>Our Sanctuary</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌹</text></svg>">
     <link rel="stylesheet" href="css/style.css">
+
+    <!-- Add to Home Screen — launches full-screen, without Safari's browser chrome -->
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="assets/icon-180.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Our Sanctuary">
+    <meta name="theme-color" content="#0E0810">
 </head>
 <body class="page-gate" style="visibility:hidden">
 
@@ -80,6 +88,7 @@
             if (await isAuthenticated()) {
                 window.location.href = 'vault.html';
             } else {
+                await clearLocalVaultDataIfSignedOut();
                 document.getElementById('name-input').value = getLoginName();
                 document.body.style.visibility = '';
             }

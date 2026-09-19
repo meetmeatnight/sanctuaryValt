@@ -22,7 +22,7 @@ async function initVault() {
         if (el) el.textContent = CONFIG.welcomeMessage;
     }
 
-    // Load static docs from documents.json
+    // Load static docs from documents.json (same-origin — fast, no need to wait on Firebase for this)
     try {
         const res = await fetch('documents.json');
         if (res.ok) {
@@ -31,22 +31,43 @@ async function initVault() {
         }
     } catch {}
 
-    // Connect to Firebase and pull latest metadata (enables cross-device sync)
+    // Render immediately from whatever's already cached locally, instead of leaving the
+    // page on "Loading…" for the whole Firebase round-trip. Cloud sync (below) runs in the
+    // background afterward and only re-renders if it actually finds something different.
+    vaultMeta = getVaultMeta();
+    await applyStoredBackground();
+
+    try { setupFolderModal();     } catch (e) { console.error('[init] setupFolderModal:', e); }
+    try { setupUploadModal();     } catch (e) { console.error('[init] setupUploadModal:', e); }
+    try { setupComposeModal();    } catch (e) { console.error('[init] setupComposeModal:', e); }
+    try { setupDeleteModal();     } catch (e) { console.error('[init] setupDeleteModal:', e); }
+    try { setupAdminPanel();      } catch (e) { console.error('[init] setupAdminPanel:', e); }
+    try { setupBackgroundModal(); } catch (e) { console.error('[init] setupBackgroundModal:', e); }
+    try { setupProfileMenu();     } catch (e) { console.error('[init] setupProfileMenu:', e); }
+    try { setupBottomNav();       } catch (e) { console.error('[init] setupBottomNav:', e); }
+    applyRolePermissions();
+    logLoginOnce();
+    renderBreadcrumb();
+    renderGrid();
+
+    // Sync with Firebase in the background — doesn't block the first paint above.
+    // Only re-renders if the cloud actually has something different from what's cached.
     if (typeof initFirebase === 'function') {
-        const fbOk = await initFirebase().catch(() => false);
-        if (fbOk) {
-            // Run all three together (rather than one after another) so the background
-            // swaps to its correct, current value as quickly as possible — minimizing the
-            // window where a stale cached photo is visible before the real one loads in.
+        const cachedCustomBg = localStorage.getItem('sanctuary-custom-bg');
+        initFirebase().then(async fbOk => {
+            if (!fbOk) return;
+
             const [cloudMeta, cloudBg, cloudBgHistory] = await Promise.all([
                 fbPullMeta().catch(() => null),
                 fbPullBackground().catch(() => null),
                 fbGetBackgroundHistory().catch(() => [])
             ]);
 
+            let contentChanged = false;
             if (cloudMeta) {
-                // Another device uploaded something — use the cloud version
                 localStorage.setItem('sanctuary-vault', JSON.stringify(cloudMeta));
+                vaultMeta = getVaultMeta();
+                contentChanged = true;
             } else {
                 // First time connecting to Firebase — push existing local data up
                 const localMeta = getVaultMeta();
@@ -63,26 +84,14 @@ async function initVault() {
             if (cloudBgHistory && cloudBgHistory.length) {
                 saveBackgroundHistoryLocal(cloudBgHistory);
             }
-        }
+
+            if (contentChanged) {
+                await applyStoredBackground(); // a personal wallpaper pick may reference a doc that just arrived
+                renderBreadcrumb();
+                renderGrid();
+            }
+        }).catch(e => console.error('[init] background Firebase sync failed:', e));
     }
-
-    vaultMeta = getVaultMeta();
-
-    // Override background with vault image if user has set one
-    await applyStoredBackground();
-
-    try { setupFolderModal();     } catch (e) { console.error('[init] setupFolderModal:', e); }
-    try { setupUploadModal();     } catch (e) { console.error('[init] setupUploadModal:', e); }
-    try { setupComposeModal();    } catch (e) { console.error('[init] setupComposeModal:', e); }
-    try { setupDeleteModal();     } catch (e) { console.error('[init] setupDeleteModal:', e); }
-    try { setupAdminPanel();      } catch (e) { console.error('[init] setupAdminPanel:', e); }
-    try { setupBackgroundModal(); } catch (e) { console.error('[init] setupBackgroundModal:', e); }
-    try { setupProfileMenu();     } catch (e) { console.error('[init] setupProfileMenu:', e); }
-    try { setupBottomNav();       } catch (e) { console.error('[init] setupBottomNav:', e); }
-    applyRolePermissions();
-    logLoginOnce();
-    renderBreadcrumb();
-    renderGrid();
 }
 
 // ── Role permissions ─────────────────────────────────────────────────────────

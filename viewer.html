@@ -9,6 +9,14 @@
     <link rel="stylesheet" href="css/style.css">
     <!-- PDF.js — renders PDFs to canvas (no download link exposed) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
+    <!-- Add to Home Screen — launches full-screen, without Safari's browser chrome -->
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="assets/icon-180.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Our Sanctuary">
+    <meta name="theme-color" content="#0E0810">
 </head>
 <body class="page-viewer" style="visibility:hidden">
 
@@ -34,6 +42,7 @@
     <script>
         (async () => {
             if (!await isAuthenticated()) {
+                await clearLocalVaultDataIfSignedOut();
                 window.location.href = 'index.html';
             } else {
                 document.body.style.visibility = '';
