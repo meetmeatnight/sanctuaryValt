@@ -27,6 +27,17 @@ async function ensureFullySynced() {
         if (!fbOk) return false;
 
         const meta = getVaultMeta();
+
+        // If the cloud already knows about a document this device doesn't, local is stale —
+        // pushing it now would overwrite and lose that document. Treat this as "can't confirm
+        // synced" (skips the wipe) rather than push a regression.
+        const cloudMeta = await fbPullMeta();
+        if (cloudMeta) {
+            const localIds = new Set((meta.documents || []).map(d => d.id));
+            const cloudHasExtra = (cloudMeta.documents || []).some(d => !localIds.has(d.id));
+            if (cloudHasExtra) return false;
+        }
+
         await fbPushMeta(meta, true); // strict — throws if this write fails
 
         for (const doc of meta.documents) {

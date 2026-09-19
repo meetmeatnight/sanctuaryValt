@@ -156,6 +156,16 @@ function _hasFirebaseConfig() {
 async function clearLocalVaultDataIfSignedOut() {
     if (!_hasFirebaseConfig()) return;
 
+    // Nothing local to protect on a device/container that has never cached anything here —
+    // e.g. a freshly added "Add to Home Screen" icon, which gets its own empty storage
+    // sandbox separate from regular Safari. Proceeding anyway let ensureFullySynced() push
+    // that empty state to Firestore as "confirmed synced," overwriting real data before
+    // anyone even logged in. Only bother verifying/wiping when there's actually something here.
+    const hasLocalCache = localStorage.getItem('sanctuary-vault') !== null
+        || localStorage.getItem('sanctuary-custom-bg') !== null
+        || localStorage.getItem('sanctuary-bg-history') !== null;
+    if (!hasLocalCache) return;
+
     if (typeof flushPendingSyncs === 'function') {
         await Promise.race([flushPendingSyncs(), new Promise(r => setTimeout(r, 5000))]);
     }
