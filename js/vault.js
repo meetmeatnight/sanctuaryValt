@@ -126,14 +126,12 @@ function applyRolePermissions() {
     const admin = isAdmin();
     const btnFolder    = document.getElementById('btn-new-folder');
     const btnUpload    = document.getElementById('btn-upload');
-    const btnCompose   = document.getElementById('btn-compose');
     const navWrite     = document.getElementById('nav-write');
     const navBg        = document.getElementById('nav-background');
     const navHistory   = document.getElementById('nav-history');
     const btnTrash     = document.getElementById('btn-trash');
     if (btnFolder)  btnFolder.hidden  = !admin;
     if (btnUpload)  btnUpload.hidden  = !admin;
-    if (btnCompose) btnCompose.hidden = !admin;
     if (navWrite)   navWrite.hidden   = !admin;
     if (navBg)      navBg.hidden      = !admin;
     if (navHistory) navHistory.hidden = !admin;
@@ -189,12 +187,9 @@ function setupPageSheetBodyClass() {
 
 function setupBottomNav() {
     const navCollection = document.getElementById('nav-collection');
-    const navWrite      = document.getElementById('nav-write');
     if (navCollection) navCollection.addEventListener('click', () => navigateTo(null));
-    // nav-write opens the same page as the hero's "Write" button
-    if (navWrite) navWrite.addEventListener('click', () => document.getElementById('btn-compose')?.click());
-    // nav-background / nav-history trigger setupBackgroundModal()/setupAdminPanel() directly
-    // nav-profile is wired by setupProfileMenu()
+    // nav-write is wired by setupComposeModal(), nav-background by setupBackgroundModal(),
+    // nav-history by setupAdminPanel(), nav-profile by setupProfileMenu()
 }
 
 // ── View toggle (grid / list) — a personal display preference, not role-gated ──
@@ -701,7 +696,7 @@ async function _saveLetterToVault(pdfDoc, title) {
 }
 
 function setupComposeModal() {
-    const btn   = document.getElementById('btn-compose');
+    const btn   = document.getElementById('nav-write');
     const modal = document.getElementById('modal-compose');
     if (!btn || !modal) return;
 
