@@ -61,13 +61,15 @@
             document.getElementById('gate-title').textContent = CONFIG.siteTitle;
         }
         // An admin-set custom background (synced from vault.html) takes priority over the bundled default.
-        const _bgSrc = localStorage.getItem('sanctuary-custom-bg') || CONFIG.backgroundImage;
+        // CONFIG.backgroundPosition is tuned for that bundled photo specifically — a custom one centers instead.
+        const _customBg = localStorage.getItem('sanctuary-custom-bg');
+        const _bgSrc     = _customBg || CONFIG.backgroundImage;
         if (_bgSrc) {
             const _layer = document.querySelector('.bg-layer');
             if (_layer) {
                 _layer.style.backgroundImage =
                     `linear-gradient(rgba(14,8,16,.72),rgba(14,8,16,.72)), url('${_bgSrc}')`;
-                _layer.style.backgroundPosition = CONFIG.backgroundPosition || 'center';
+                _layer.style.backgroundPosition = _customBg ? 'center' : (CONFIG.backgroundPosition || 'center');
             }
         }
 

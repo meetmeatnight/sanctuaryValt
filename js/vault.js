@@ -6,7 +6,7 @@ const COVER_CYCLE = ['cover-1','cover-2','cover-3','cover-4','cover-5','cover-6'
 
 async function initVault() {
     // Apply config background immediately (inline style resolves URL relative to document, not CSS file)
-    if (CONFIG.backgroundImage) applyBgLayer(CONFIG.backgroundImage);
+    if (CONFIG.backgroundImage) applyBgLayer(CONFIG.backgroundImage, CONFIG.backgroundPosition);
     // Admin-set global background overrides it, if one's been chosen (cached locally, refreshed below)
     const cachedCustomBg = localStorage.getItem('sanctuary-custom-bg');
     if (cachedCustomBg) applyBgLayer(cachedCustomBg);
@@ -34,7 +34,15 @@ async function initVault() {
     if (typeof initFirebase === 'function') {
         const fbOk = await initFirebase().catch(() => false);
         if (fbOk) {
-            const cloudMeta = await fbPullMeta().catch(() => null);
+            // Run all three together (rather than one after another) so the background
+            // swaps to its correct, current value as quickly as possible — minimizing the
+            // window where a stale cached photo is visible before the real one loads in.
+            const [cloudMeta, cloudBg, cloudBgHistory] = await Promise.all([
+                fbPullMeta().catch(() => null),
+                fbPullBackground().catch(() => null),
+                fbGetBackgroundHistory().catch(() => [])
+            ]);
+
             if (cloudMeta) {
                 // Another device uploaded something — use the cloud version
                 localStorage.setItem('sanctuary-vault', JSON.stringify(cloudMeta));
@@ -46,11 +54,12 @@ async function initVault() {
                 }
             }
 
-            // Refresh the global background from the cloud in case another device changed it
-            const cloudBg = await fbPullBackground().catch(() => null);
             if (cloudBg && cloudBg !== cachedCustomBg) {
                 localStorage.setItem('sanctuary-custom-bg', cloudBg);
                 applyBgLayer(cloudBg);
+            }
+            if (cloudBgHistory && cloudBgHistory.length) {
+                saveBackgroundHistoryLocal(cloudBgHistory);
             }
         }
     }
@@ -62,9 +71,12 @@ async function initVault() {
 
     try { setupFolderModal();     } catch (e) { console.error('[init] setupFolderModal:', e); }
     try { setupUploadModal();     } catch (e) { console.error('[init] setupUploadModal:', e); }
+    try { setupComposeModal();    } catch (e) { console.error('[init] setupComposeModal:', e); }
     try { setupDeleteModal();     } catch (e) { console.error('[init] setupDeleteModal:', e); }
     try { setupAdminPanel();      } catch (e) { console.error('[init] setupAdminPanel:', e); }
     try { setupBackgroundModal(); } catch (e) { console.error('[init] setupBackgroundModal:', e); }
+    try { setupProfileMenu();     } catch (e) { console.error('[init] setupProfileMenu:', e); }
+    try { setupBottomNav();       } catch (e) { console.error('[init] setupBottomNav:', e); }
     applyRolePermissions();
     logLoginOnce();
     renderBreadcrumb();
@@ -75,14 +87,62 @@ async function initVault() {
 
 function applyRolePermissions() {
     const admin = isAdmin();
-    const btnFolder = document.getElementById('btn-new-folder');
-    const btnUpload = document.getElementById('btn-upload');
-    const btnAdmin  = document.getElementById('btn-admin-panel');
-    const btnBg     = document.getElementById('btn-background');
-    if (btnFolder) btnFolder.hidden = !admin;
-    if (btnUpload) btnUpload.hidden = !admin;
-    if (btnAdmin)  btnAdmin.hidden  = !admin;
-    if (btnBg)     btnBg.hidden     = !admin;
+    const btnFolder  = document.getElementById('btn-new-folder');
+    const btnUpload  = document.getElementById('btn-upload');
+    const btnCompose = document.getElementById('btn-compose');
+    const btnAdmin   = document.getElementById('btn-admin-panel');
+    const btnBg      = document.getElementById('btn-background');
+    const navWrite   = document.getElementById('nav-write');
+    if (btnFolder)  btnFolder.hidden  = !admin;
+    if (btnUpload)  btnUpload.hidden  = !admin;
+    if (btnCompose) btnCompose.hidden = !admin;
+    if (btnAdmin)   btnAdmin.hidden   = !admin;
+    if (btnBg)      btnBg.hidden      = !admin;
+    if (navWrite)   navWrite.hidden   = !admin;
+}
+
+// ── Profile menu (avatar in the header, or the Profile tab on mobile) ───────
+// Both triggers open the same modal — a modal works regardless of which one
+// fired it, unlike a corner dropdown that would need separate positioning logic.
+
+function setupProfileMenu() {
+    const modal = document.getElementById('modal-profile');
+    const toggles = document.querySelectorAll('.profile-menu-toggle');
+    if (!modal || !toggles.length) return;
+
+    const closeBtn = document.getElementById('profile-modal-close');
+    const nameEl   = document.getElementById('profile-modal-name');
+    const roleEl   = document.getElementById('profile-modal-role');
+    const avatarSm = document.getElementById('profile-avatar-initial');
+    const avatarLg = document.getElementById('profile-avatar-lg');
+
+    const initial = (getLoginName() || '').trim().charAt(0).toUpperCase() || (isAdmin() ? 'A' : 'U');
+    if (avatarSm) avatarSm.textContent = initial;
+    if (avatarLg) avatarLg.textContent = initial;
+
+    const openModal = () => {
+        if (nameEl) nameEl.textContent = getLoginName() || (isAdmin() ? 'Admin' : 'Guest');
+        if (roleEl) roleEl.textContent = isAdmin() ? 'Admin' : 'Viewer';
+        modal.hidden = false;
+    };
+    toggles.forEach(t => t.addEventListener('click', openModal));
+
+    const closeModal = () => { modal.hidden = true; };
+    closeBtn.addEventListener('click', closeModal);
+    modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
+    modal.querySelectorAll('.profile-menu-item').forEach(item => {
+        item.addEventListener('click', closeModal);
+    });
+}
+
+// ── Bottom Nav (mobile only — hidden on desktop via CSS) ────────────────────
+
+function setupBottomNav() {
+    const navCollection = document.getElementById('nav-collection');
+    const navWrite      = document.getElementById('nav-write');
+    if (navCollection) navCollection.addEventListener('click', () => navigateTo(null));
+    if (navWrite) navWrite.addEventListener('click', () => document.getElementById('btn-compose')?.click());
+    // nav-profile is wired generically by setupProfileMenu() via the .profile-menu-toggle class
 }
 
 // Records this session's login (name, role, device, IP, location) once, for the admin login-history panel.
@@ -103,13 +163,16 @@ async function logLoginOnce() {
 }
 
 // Sets background directly on .bg-layer so URL resolves relative to document, not stylesheet
-function applyBgLayer(src) {
+// CONFIG.backgroundPosition is hand-tuned for CONFIG.backgroundImage specifically (keeps its
+// subject in frame). Any other photo's framing is unknown, so it only applies to that one photo —
+// everything else (admin's custom background, a personal per-doc wallpaper) centers by default.
+function applyBgLayer(src, position) {
     if (!src) return;
     const layer = document.querySelector('.bg-layer');
     if (!layer) return;
     layer.style.backgroundImage =
         'linear-gradient(rgba(14,8,16,.72),rgba(14,8,16,.72)), url("' + src.replace(/"/g, '\\"') + '")';
-    layer.style.backgroundPosition = CONFIG.backgroundPosition || 'center';
+    layer.style.backgroundPosition = position || 'center';
 }
 
 // Loads vault background from IndexedDB (if user has set one) and applies it
@@ -183,6 +246,22 @@ async function _resizeImageDataUrl(plainBuf, mime, maxDim, quality) {
     }
 }
 
+// Local cache of the background gallery — replaced wholesale from Firestore when reachable
+// (same pattern as vaultMeta), so it still works, self-contained, in local-only mode.
+const BG_HISTORY_MAX = 12;
+
+function getBackgroundHistory() {
+    try {
+        const raw = localStorage.getItem('sanctuary-bg-history');
+        if (raw) return JSON.parse(raw);
+    } catch {}
+    return [];
+}
+
+function saveBackgroundHistoryLocal(list) {
+    localStorage.setItem('sanctuary-bg-history', JSON.stringify(list.slice(0, BG_HISTORY_MAX)));
+}
+
 function setupBackgroundModal() {
     const btn       = document.getElementById('btn-background');
     const modal     = document.getElementById('modal-background');
@@ -197,8 +276,56 @@ function setupBackgroundModal() {
     const saveBtn   = document.getElementById('background-save');
     const resetBtn  = document.getElementById('background-reset');
 
+    const historyGrid = document.getElementById('bg-history-grid');
+
     let pendingDataUrl = null;
     const currentSrc = () => localStorage.getItem('sanctuary-custom-bg') || CONFIG.backgroundImage || '';
+
+    const renderHistory = () => {
+        if (!historyGrid) return;
+        const history = getBackgroundHistory();
+        const current = localStorage.getItem('sanctuary-custom-bg');
+
+        if (!history.length) {
+            historyGrid.innerHTML = '<p class="bg-history-empty">No previous backgrounds yet.</p>';
+            return;
+        }
+
+        historyGrid.innerHTML = history.map(h => `
+            <div class="bg-history-thumb${h.image === current ? ' is-current' : ''}" data-id="${escHtml(h.id)}">
+                <img src="${escHtml(h.image)}" alt="" draggable="false">
+                <button class="bg-history-thumb-del" data-id="${escHtml(h.id)}" title="Remove">✕</button>
+            </div>
+        `).join('');
+
+        historyGrid.querySelectorAll('.bg-history-thumb').forEach(el => {
+            el.addEventListener('click', e => {
+                if (e.target.closest('.bg-history-thumb-del')) return;
+                const entry = history.find(h => h.id === el.dataset.id);
+                if (entry) selectFromHistory(entry.image);
+            });
+        });
+        historyGrid.querySelectorAll('.bg-history-thumb-del').forEach(delBtn => {
+            delBtn.addEventListener('click', async e => {
+                e.stopPropagation();
+                const remaining = getBackgroundHistory().filter(h => h.id !== delBtn.dataset.id);
+                saveBackgroundHistoryLocal(remaining);
+                if (typeof fbDeleteBackgroundHistoryEntry === 'function') {
+                    await fbDeleteBackgroundHistoryEntry(delBtn.dataset.id).catch(() => {});
+                }
+                renderHistory();
+            });
+        });
+    };
+
+    const selectFromHistory = async image => {
+        localStorage.setItem('sanctuary-custom-bg', image);
+        applyBgLayer(image);
+        preview.src = image;
+        if (typeof fbPushBackground === 'function') await fbPushBackground(image).catch(() => {});
+        showToast('✓  Background updated');
+        renderHistory();
+    };
 
     const openModal = () => {
         pendingDataUrl = null;
@@ -207,6 +334,7 @@ function setupBackgroundModal() {
         if (zone) zone.classList.remove('has-file');
         if (errorEl) errorEl.hidden = true;
         preview.src = currentSrc();
+        renderHistory();
         modal.hidden = false;
     };
     btn.addEventListener('click', openModal);
@@ -241,9 +369,16 @@ function setupBackgroundModal() {
         saveBtn.disabled    = true;
         saveBtn.textContent = 'Saving…';
         try {
+            const id = genId();
+            const history = [{ id, image: pendingDataUrl, at: Date.now() }, ...getBackgroundHistory()];
+            saveBackgroundHistoryLocal(history);
+
             localStorage.setItem('sanctuary-custom-bg', pendingDataUrl);
             applyBgLayer(pendingDataUrl);
+
             if (typeof fbPushBackground === 'function') await fbPushBackground(pendingDataUrl).catch(() => {});
+            if (typeof fbAddBackgroundHistory === 'function') await fbAddBackgroundHistory(id, pendingDataUrl).catch(() => {});
+
             showToast('✓  Background updated');
             closeModal();
         } finally {
@@ -254,10 +389,263 @@ function setupBackgroundModal() {
 
     resetBtn.addEventListener('click', async () => {
         localStorage.removeItem('sanctuary-custom-bg');
-        applyBgLayer(CONFIG.backgroundImage);
+        applyBgLayer(CONFIG.backgroundImage, CONFIG.backgroundPosition);
         preview.src = CONFIG.backgroundImage || '';
         if (typeof fbDeleteBackground === 'function') await fbDeleteBackground().catch(() => {});
         showToast('Background reset to default');
+        renderHistory();
+    });
+}
+
+// ── Compose Letter (paste text → a romantic, mobile-readable PDF) ───────────
+// Page is sized like a phone screen so PDF viewers that fit-to-width render
+// the text comfortably large — no pinch-zoom needed to read it.
+
+const LETTER_PAGE_W = 400;
+const LETTER_PAGE_H = 700;
+const LETTER_MARGIN = 42;
+const LETTER_CREAM   = [238, 224, 208];
+const LETTER_AMBER   = [212, 168, 112];
+
+// Drawn, not typed — dingbat characters like ❧ aren't in the standard PDF fonts'
+// character set and render as garbage, so the ornament is a small vector heart instead.
+function _drawHeart(doc, cx, cy, size, color) {
+    doc.setFillColor(...color);
+    const r = size * 0.28;
+    doc.circle(cx - r, cy - r * 0.3, r, 'F');
+    doc.circle(cx + r, cy - r * 0.3, r, 'F');
+    doc.triangle(
+        cx - r * 1.9, cy - r * 0.15,
+        cx + r * 1.9, cy - r * 0.15,
+        cx, cy + size * 0.62,
+        'F'
+    );
+}
+
+function _dataUrlMimeToJsPdfFormat(dataUrl) {
+    const m = /^data:image\/(\w+)/.exec(dataUrl || '');
+    return m ? m[1].toUpperCase().replace('JPG', 'JPEG') : 'JPEG';
+}
+
+// Reuses whichever background is currently active (admin's custom one, or the bundled
+// default) so the letter looks like it belongs to the same site instead of a blank page.
+async function _loadCurrentBackgroundDataUrl() {
+    const custom = localStorage.getItem('sanctuary-custom-bg');
+    if (custom) return custom;
+    if (!CONFIG.backgroundImage) return null;
+    try {
+        const res = await fetch(CONFIG.backgroundImage);
+        if (!res.ok) return null;
+        const buf = await res.arrayBuffer();
+        const ext = CONFIG.backgroundImage.split('.').pop().toLowerCase();
+        return arrayBufferToDataUrl(buf, extToMime(ext));
+    } catch {
+        return null;
+    }
+}
+
+function _drawLetterPageBackground(doc, bgDataUrl) {
+    const w = LETTER_PAGE_W, h = LETTER_PAGE_H;
+    if (bgDataUrl) {
+        try {
+            doc.addImage(bgDataUrl, _dataUrlMimeToJsPdfFormat(bgDataUrl), 0, 0, w, h, undefined, 'FAST');
+        } catch {
+            doc.setFillColor(26, 14, 22);
+            doc.rect(0, 0, w, h, 'F');
+        }
+    } else {
+        // No photo configured — a soft rose-to-dark gradient stands in for one.
+        const bands = 60;
+        for (let i = 0; i < bands; i++) {
+            const t = i / (bands - 1);
+            doc.setFillColor(
+                Math.round(90 + (14 - 90) * t),
+                Math.round(37 + (8  - 37) * t),
+                Math.round(53 + (16 - 53) * t)
+            );
+            doc.rect(0, (h / bands) * i, w, h / bands + 1, 'F');
+        }
+    }
+    // Dark veil for text contrast — the same treatment the site uses over its own background.
+    doc.saveGraphicsState();
+    doc.setGState(new doc.GState({ opacity: 0.6 }));
+    doc.setFillColor(14, 8, 16);
+    doc.rect(0, 0, w, h, 'F');
+    doc.restoreGraphicsState();
+}
+
+async function generateLetterPdf(title, bodyText) {
+    if (typeof window.jspdf === 'undefined') throw new Error('PDF library failed to load. Check your internet connection.');
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: 'pt', format: [LETTER_PAGE_W, LETTER_PAGE_H] });
+    const bgDataUrl  = await _loadCurrentBackgroundDataUrl();
+    const contentW   = LETTER_PAGE_W - LETTER_MARGIN * 2;
+
+    let y = 0;
+    const newPage = first => {
+        if (!first) doc.addPage();
+        _drawLetterPageBackground(doc, bgDataUrl);
+        y = LETTER_MARGIN;
+    };
+    newPage(true);
+
+    _drawHeart(doc, LETTER_PAGE_W / 2, y + 10, 16, LETTER_AMBER);
+    y += 42;
+
+    doc.setFont('times', 'bolditalic');
+    doc.setFontSize(24);
+    doc.setTextColor(...LETTER_CREAM);
+    doc.splitTextToSize(title || 'For You', contentW).forEach(line => {
+        doc.text(line, LETTER_PAGE_W / 2, y, { align: 'center' });
+        y += 30;
+    });
+
+    y += 6;
+    doc.setDrawColor(...LETTER_AMBER);
+    doc.setLineWidth(0.75);
+    doc.line(LETTER_PAGE_W / 2 - 40, y, LETTER_PAGE_W / 2 + 40, y);
+    y += 34;
+
+    const bodyFontSize = 15;
+    const lineHeight    = bodyFontSize * 1.65;
+    doc.setFont('times', 'normal');
+    doc.setFontSize(bodyFontSize);
+    doc.setTextColor(...LETTER_CREAM);
+
+    (bodyText || '').split(/\n{2,}/).forEach(para => {
+        doc.splitTextToSize(para.trim(), contentW).forEach(line => {
+            if (y > LETTER_PAGE_H - LETTER_MARGIN) newPage(false);
+            doc.text(line, LETTER_MARGIN, y);
+            y += lineHeight;
+        });
+        y += lineHeight * 0.6;
+    });
+
+    if (y > LETTER_PAGE_H - LETTER_MARGIN - 30) newPage(false);
+    _drawHeart(doc, LETTER_PAGE_W / 2, y + 12, 14, LETTER_AMBER);
+
+    return doc;
+}
+
+// Saves the generated letter into the vault exactly like an uploaded PDF —
+// same encryption, same cover-thumbnail pipeline.
+async function _saveLetterToVault(pdfDoc, title) {
+    const plainBuf = pdfDoc.output('arraybuffer');
+    const key = await loadKeyFromSession();
+
+    let storageData, encrypted = false;
+    if (key) {
+        storageData = await encryptBuf(key, plainBuf);
+        encrypted   = true;
+    } else {
+        storageData = arrayBufferToDataUrl(plainBuf, 'application/pdf');
+    }
+
+    const id         = genId();
+    const storageKey = id + '.pdf';
+    await storeFile(storageKey, storageData);
+
+    let thumbFields = {};
+    try {
+        const thumbBuf = await _thumbFromPdf(plainBuf);
+        if (thumbBuf) {
+            thumbFields = key
+                ? { thumb: _bufToB64(await encryptBuf(key, thumbBuf)), thumbEncrypted: true }
+                : { thumb: _bufToB64(thumbBuf), thumbEncrypted: false };
+        }
+    } catch (e) {
+        console.warn('[compose] thumbnail generation failed:', e);
+    }
+
+    const docMeta = {
+        id,
+        title:       title || 'A Letter',
+        description: 'Written with love',
+        type:        'pdf',
+        folderId:    currentFolderId,
+        storageKey,
+        encrypted,
+        date:        formatDate(Date.now()),
+        coverClass:  COVER_CYCLE[vaultMeta.documents.length % COVER_CYCLE.length],
+        visible:     false, // hidden from the regular login until admin allows it
+        ...thumbFields
+    };
+
+    vaultMeta.documents.push(docMeta);
+    saveVaultMeta(vaultMeta);
+    renderGrid();
+}
+
+function setupComposeModal() {
+    const btn   = document.getElementById('btn-compose');
+    const modal = document.getElementById('modal-compose');
+    if (!btn || !modal) return;
+
+    const closeBtn    = document.getElementById('compose-modal-close');
+    const titleInput  = document.getElementById('compose-title');
+    const textInput   = document.getElementById('compose-text');
+    const errorEl     = document.getElementById('compose-error');
+    const downloadBtn = document.getElementById('compose-download');
+    const saveBtn     = document.getElementById('compose-save');
+
+    const openModal = () => {
+        titleInput.value = '';
+        textInput.value  = '';
+        if (errorEl) errorEl.hidden = true;
+        modal.hidden = false;
+        setTimeout(() => titleInput.focus(), 60);
+    };
+    btn.addEventListener('click', openModal);
+
+    const closeModal = () => { modal.hidden = true; };
+    closeBtn.addEventListener('click', closeModal);
+    modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
+
+    const validate = () => {
+        if (!textInput.value.trim()) {
+            errorEl.textContent = 'Write something first.';
+            errorEl.hidden = false;
+            return false;
+        }
+        errorEl.hidden = true;
+        return true;
+    };
+
+    downloadBtn.addEventListener('click', async () => {
+        if (!validate()) return;
+        downloadBtn.disabled    = true;
+        downloadBtn.textContent = 'Preparing…';
+        try {
+            const pdf = await generateLetterPdf(titleInput.value.trim(), textInput.value);
+            pdf.save((titleInput.value.trim() || 'letter') + '.pdf');
+        } catch (e) {
+            console.error('[compose] download failed:', e);
+            errorEl.textContent = 'Could not generate the PDF: ' + (e?.message || 'unknown error');
+            errorEl.hidden = false;
+        } finally {
+            downloadBtn.disabled    = false;
+            downloadBtn.textContent = 'Download PDF';
+        }
+    });
+
+    saveBtn.addEventListener('click', async () => {
+        if (!validate()) return;
+        saveBtn.disabled    = true;
+        saveBtn.textContent = 'Saving…';
+        try {
+            const title = titleInput.value.trim() || 'A Letter';
+            const pdf   = await generateLetterPdf(title, textInput.value);
+            await _saveLetterToVault(pdf, title);
+            showToast('✓  Saved — hidden until you tap "Hidden" to allow others to see it');
+            closeModal();
+        } catch (e) {
+            console.error('[compose] save failed:', e);
+            errorEl.textContent = 'Could not save to the vault: ' + (e?.message || 'unknown error');
+            errorEl.hidden = false;
+        } finally {
+            saveBtn.disabled    = false;
+            saveBtn.textContent = 'Save to Vault';
+        }
     });
 }
 

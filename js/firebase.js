@@ -144,6 +144,35 @@ async function fbDeleteBackground() {
     } catch (e) { console.error('[firebase] fbDeleteBackground:', e); }
 }
 
+// Reusable gallery of past backgrounds — separate from the "current" pointer above,
+// so resetting to default or switching photos never loses previously used ones.
+async function fbAddBackgroundHistory(id, dataUrl) {
+    if (!_fb) return;
+    try {
+        await _fb.setDoc(_fb.doc(_fb.db, 'backgrounds', id), { image: dataUrl, at: Date.now() });
+    } catch (e) { console.error('[firebase] fbAddBackgroundHistory:', e); }
+}
+
+async function fbGetBackgroundHistory(max) {
+    if (!_fb) return [];
+    try {
+        const q = _fb.query(
+            _fb.collection(_fb.db, 'backgrounds'),
+            _fb.orderBy('at', 'desc'),
+            _fb.limit(max || 12)
+        );
+        const snap = await _fb.getDocs(q);
+        return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    } catch (e) { console.error('[firebase] fbGetBackgroundHistory:', e); return []; }
+}
+
+async function fbDeleteBackgroundHistoryEntry(id) {
+    if (!_fb) return;
+    try {
+        await _fb.deleteDoc(_fb.doc(_fb.db, 'backgrounds', id));
+    } catch (e) { console.error('[firebase] fbDeleteBackgroundHistoryEntry:', e); }
+}
+
 // ── Login history (admin panel) ────────────────────────────────────────────
 
 async function fbLogLogin(entry) {

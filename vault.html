@@ -18,9 +18,9 @@
             <span class="brand-title">Our Sanctuary</span>
         </div>
         <div class="vault-header-actions">
-            <button class="action-btn" id="btn-background" hidden>Background</button>
-            <button class="action-btn" id="btn-admin-panel" hidden>Login History</button>
-            <button class="logout-btn" onclick="logout()">Sign out</button>
+            <button class="profile-avatar-btn profile-menu-toggle" id="btn-profile-avatar" aria-label="Account menu">
+                <span id="profile-avatar-initial">U</span>
+            </button>
         </div>
     </header>
 
@@ -33,6 +33,7 @@
                 </div>
                 <div class="vault-actions">
                     <button class="action-btn" id="btn-new-folder">+ New Folder</button>
+                    <button class="action-btn" id="btn-compose">✍ Write</button>
                     <button class="action-btn action-btn-primary" id="btn-upload">↑ Upload</button>
                 </div>
             </div>
@@ -49,6 +50,22 @@
     <footer class="vault-footer">
         Our private space · protected
     </footer>
+
+    <!-- ── Bottom Nav (mobile only) ─────────────────────────── -->
+    <nav class="bottom-nav" id="bottom-nav" aria-label="Primary">
+        <button class="bottom-nav-item is-active" id="nav-collection">
+            <span class="bottom-nav-icon">🏠</span>
+            <span class="bottom-nav-label">Collection</span>
+        </button>
+        <button class="bottom-nav-item" id="nav-write" hidden>
+            <span class="bottom-nav-icon">✍</span>
+            <span class="bottom-nav-label">Write</span>
+        </button>
+        <button class="bottom-nav-item profile-menu-toggle" id="nav-profile">
+            <span class="bottom-nav-icon">👤</span>
+            <span class="bottom-nav-label">Profile</span>
+        </button>
+    </nav>
 
     <!-- ── New Folder Modal ────────────────────────────────── -->
     <div class="modal-overlay" id="modal-folder" hidden
@@ -109,6 +126,55 @@
         </div>
     </div>
 
+    <!-- ── Profile Modal ────────────────────────────────────── -->
+    <div class="modal-overlay" id="modal-profile" hidden
+         role="dialog" aria-modal="true" aria-labelledby="modal-profile-title">
+        <div class="modal-card">
+            <div class="modal-head">
+                <h3 class="modal-title" id="modal-profile-title">Account</h3>
+                <button class="modal-close" type="button" id="profile-modal-close" aria-label="Close">✕</button>
+            </div>
+            <div class="profile-modal-info">
+                <div class="profile-avatar-lg" id="profile-avatar-lg">U</div>
+                <div>
+                    <div class="profile-modal-name" id="profile-modal-name">Guest</div>
+                    <div class="profile-modal-role" id="profile-modal-role">Viewer</div>
+                </div>
+            </div>
+            <div class="profile-menu-items">
+                <button class="profile-menu-item" id="btn-background" hidden>🖼&nbsp;&nbsp;Background</button>
+                <button class="profile-menu-item" id="btn-admin-panel" hidden>🕘&nbsp;&nbsp;Login History</button>
+                <button class="profile-menu-item profile-menu-item-danger" onclick="logout()">↪&nbsp;&nbsp;Sign out</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Compose Letter Modal ─────────────────────────────── -->
+    <div class="modal-overlay" id="modal-compose" hidden
+         role="dialog" aria-modal="true" aria-labelledby="modal-compose-title">
+        <div class="modal-card modal-card-wide">
+            <div class="modal-head">
+                <h3 class="modal-title" id="modal-compose-title">Write a Letter</h3>
+                <button class="modal-close" type="button" id="compose-modal-close" aria-label="Close">✕</button>
+            </div>
+            <div class="modal-field">
+                <label class="modal-label" for="compose-title">Title</label>
+                <input type="text" id="compose-title" class="modal-input"
+                    placeholder="For you…" maxlength="80" autocomplete="off">
+            </div>
+            <div class="modal-field">
+                <label class="modal-label" for="compose-text">Your words</label>
+                <textarea id="compose-text" class="modal-input modal-textarea compose-textarea"
+                    placeholder="Write from the heart… paste or type as much as you like."></textarea>
+            </div>
+            <p class="modal-error" id="compose-error" hidden></p>
+            <div class="modal-actions">
+                <button class="modal-btn" id="compose-download">Download PDF</button>
+                <button class="modal-btn modal-btn-primary" id="compose-save">Save to Vault</button>
+            </div>
+        </div>
+    </div>
+
     <!-- ── Delete Confirm Modal ──────────────────────────── -->
     <div class="modal-overlay" id="modal-delete" hidden
          role="dialog" aria-modal="true" aria-labelledby="modal-delete-title">
@@ -165,6 +231,12 @@
                 <input type="file" id="bg-file-input"
                     accept=".jpg,.jpeg,.png,.gif,.webp,.avif,.bmp" hidden>
             </div>
+            <div class="modal-field">
+                <label class="modal-label">Previously used</label>
+                <div class="bg-history-grid" id="bg-history-grid">
+                    <p class="bg-history-empty">No previous backgrounds yet.</p>
+                </div>
+            </div>
             <p class="modal-error" id="background-error" hidden></p>
             <div class="modal-actions">
                 <button class="modal-btn" id="background-reset">Reset to default</button>
@@ -175,6 +247,8 @@
 
     <!-- PDF.js — renders a page-1 thumbnail for uploaded PDFs -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <!-- jsPDF — typesets the "Write a Letter" composer into a PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="js/config.js"></script>
     <script src="js/crypto.js"></script>
     <script src="js/auth.js"></script>
