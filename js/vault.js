@@ -24,7 +24,7 @@ async function initVault() {
 
     // Load static docs from documents.json (same-origin — fast, no need to wait on Firebase for this)
     try {
-        const res = await fetch('documents.json');
+        const res = await fetch('documents.json', { cache: 'no-store' });
         if (res.ok) {
             const data = await res.json();
             staticDocs = (data.documents || []).map(d => ({ ...d, _static: true, folderId: null }));

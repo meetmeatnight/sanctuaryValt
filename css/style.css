@@ -651,20 +651,23 @@ header, main, footer, .gate-card {
     z-index: 1;
 }
 
-/* ── Bottom Nav — mobile-app-style tab bar, hidden on desktop ─────────────── */
+/* ── Bottom Nav — floating glass pill, hidden on desktop ──────────────────── */
 .bottom-nav {
     display: none;
     position: fixed;
-    left: 0;
-    right: 0;
-    bottom: 0;
+    left: 1rem;
+    right: 1rem;
+    bottom: max(1rem, env(safe-area-inset-bottom));
     z-index: 20;
-    background: rgba(14, 8, 16, 0.7);
-    backdrop-filter: blur(var(--glass-blur)) saturate(160%);
-    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(160%);
-    border-top: 1px solid var(--glass-b);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
-    padding: 0.5rem 0.5rem max(0.5rem, env(safe-area-inset-bottom));
+    align-items: center;
+    gap: 0.25rem;
+    background: rgba(34, 18, 25, 0.72);
+    backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+    border: 1px solid var(--glass-edge);
+    border-radius: var(--r-pill);
+    box-shadow: 0 20px 45px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+    padding: 0.5rem;
 }
 
 .bottom-nav-item {
@@ -672,26 +675,33 @@ header, main, footer, .gate-card {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0.2rem;
+    justify-content: center;
+    gap: 0.15rem;
     background: none;
     border: none;
+    border-radius: var(--r-pill);
     color: var(--muted);
     font-family: var(--font-u);
-    font-size: 0.62rem;
+    font-size: 0.6rem;
     letter-spacing: 0.03em;
-    padding: 0.3rem 0.2rem;
+    padding: 0.45rem 0.2rem;
     cursor: pointer;
-    transition: color 0.2s var(--ease-spring), transform 0.2s var(--ease-spring);
+    transition: color 0.2s var(--ease-spring), background 0.2s var(--ease-spring), transform 0.2s var(--ease-spring);
 }
 
-.bottom-nav-icon { font-size: 1.25rem; line-height: 1; }
+.bottom-nav-icon { font-size: 1.2rem; line-height: 1; }
 
-.bottom-nav-item.is-active,
-.bottom-nav-item:active { color: var(--amber); transform: translateY(-1px); }
+.bottom-nav-item.is-active {
+    color: var(--amber);
+    background: rgba(212, 168, 112, 0.15);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.bottom-nav-item:active { transform: scale(0.94); }
 
 @media (max-width: 768px) {
     .bottom-nav { display: flex; }
-    .vault-main { padding-bottom: calc(4.5rem + env(safe-area-inset-bottom)); }
+    .vault-main { padding-bottom: calc(6rem + env(safe-area-inset-bottom)); }
     .vault-footer { display: none; } /* redundant once the bottom nav is present */
 }
 
