@@ -6,7 +6,7 @@
     <meta name="robots" content="noindex, nofollow">
     <title>Our Sanctuary</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌹</text></svg>">
-    <link rel="stylesheet" href="css/style.css?v=20260920g">
+    <link rel="stylesheet" href="css/style.css?v=20260920h">
 
     <!-- Add to Home Screen — launches full-screen, without Safari's browser chrome -->
     <link rel="manifest" href="manifest.json">
@@ -190,6 +190,11 @@
                 <textarea id="compose-text" class="modal-input modal-textarea compose-textarea"
                     placeholder="Write from the heart… paste or type as much as you like."></textarea>
             </div>
+            <div class="modal-actions">
+                <button class="modal-btn" id="compose-hinglish">🔤 Convert to Hinglish</button>
+                <button class="modal-btn" id="compose-hinglish-undo" hidden>↺ Undo</button>
+            </div>
+            <p class="bg-preview-hint">Converts common story phrases and words to Hinglish (Hindi in Roman script), fully offline — an approximation, not a real translation, so unusual sentences may read roughly.</p>
             <p class="modal-error" id="compose-error" hidden></p>
             <div class="modal-actions">
                 <button class="modal-btn" id="compose-download">Download PDF</button>
@@ -298,13 +303,14 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <!-- jsPDF — typesets the "Write a Letter" composer into a PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="js/config.js?v=20260920g"></script>
-    <script src="js/crypto.js?v=20260920g"></script>
-    <script src="js/auth.js?v=20260920g"></script>
-    <script src="js/protect.js?v=20260920g"></script>
-    <script src="js/storage.js?v=20260920g"></script>
-    <script src="js/firebase.js?v=20260920g"></script>
-    <script src="js/vault.js?v=20260920g"></script>
+    <script src="js/config.js?v=20260920h"></script>
+    <script src="js/crypto.js?v=20260920h"></script>
+    <script src="js/auth.js?v=20260920h"></script>
+    <script src="js/protect.js?v=20260920h"></script>
+    <script src="js/storage.js?v=20260920h"></script>
+    <script src="js/firebase.js?v=20260920h"></script>
+    <script src="js/hinglish.js?v=20260920h"></script>
+    <script src="js/vault.js?v=20260920h"></script>
     <script>
         (async () => {
             if (!await isAuthenticated()) {

@@ -711,21 +711,61 @@ function setupComposeModal() {
     const modal = document.getElementById('modal-compose');
     if (!btn || !modal) return;
 
-    const titleInput  = document.getElementById('compose-title');
-    const textInput   = document.getElementById('compose-text');
-    const errorEl     = document.getElementById('compose-error');
-    const downloadBtn = document.getElementById('compose-download');
-    const saveBtn     = document.getElementById('compose-save');
+    const titleInput   = document.getElementById('compose-title');
+    const textInput    = document.getElementById('compose-text');
+    const errorEl      = document.getElementById('compose-error');
+    const downloadBtn  = document.getElementById('compose-download');
+    const saveBtn      = document.getElementById('compose-save');
+    const hinglishBtn  = document.getElementById('compose-hinglish');
+    const undoBtn      = document.getElementById('compose-hinglish-undo');
+    let _originalDraft = null;
 
     const openModal = () => {
         titleInput.value = '';
         textInput.value  = '';
         if (errorEl) errorEl.hidden = true;
+        if (undoBtn) undoBtn.hidden = true;
+        _originalDraft = null;
         closeAllPageSheets();
         modal.hidden = false;
         setTimeout(() => titleInput.focus(), 60);
     };
     btn.addEventListener('click', openModal);
+
+    // Fully offline, no network call — see js/hinglish.js. It's a phrase/word
+    // substitution tool, not a real translator, so unusual sentences will read
+    // roughly; common story phrasing (like moral-story openers/closers) fares best.
+    if (hinglishBtn) {
+        hinglishBtn.addEventListener('click', () => {
+            if (!textInput.value.trim() && !titleInput.value.trim()) return;
+            _originalDraft = { title: titleInput.value, text: textInput.value };
+
+            const title = titleInput.value.trim();
+            if (title && typeof convertTitleToHinglish === 'function') {
+                const hinglishTitle = convertTitleToHinglish(title);
+                if (hinglishTitle && hinglishTitle.toLowerCase() !== title.toLowerCase()) {
+                    titleInput.value = title + ' – ' + hinglishTitle;
+                }
+            }
+            if (typeof convertToHinglish === 'function') {
+                textInput.value = convertToHinglish(textInput.value);
+            }
+
+            if (undoBtn) undoBtn.hidden = false;
+            showToast('Converted to Hinglish');
+        });
+    }
+
+    if (undoBtn) {
+        undoBtn.addEventListener('click', () => {
+            if (!_originalDraft) return;
+            titleInput.value = _originalDraft.title;
+            textInput.value  = _originalDraft.text;
+            _originalDraft = null;
+            undoBtn.hidden = true;
+            showToast('Reverted to original');
+        });
+    }
 
     const validate = () => {
         if (!textInput.value.trim()) {
@@ -765,6 +805,8 @@ function setupComposeModal() {
             showToast('✓  Saved — hidden until you tap "Hidden" to allow others to see it');
             titleInput.value = '';
             textInput.value  = '';
+            _originalDraft = null;
+            if (undoBtn) undoBtn.hidden = true;
         } catch (e) {
             console.error('[compose] save failed:', e);
             errorEl.textContent = 'Could not save to the vault: ' + (e?.message || 'unknown error');
