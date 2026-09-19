@@ -27,7 +27,13 @@ const CONFIG = {
 
     // Path to your background image (place your photo in the assets/ folder)
     // Leave empty ('') for a solid-colour background.
-    backgroundImage: '',
+    backgroundImage: 'assets/poster_1.jpeg',
+
+    // Which part of that photo to keep centered as the window is resized
+    // (CSS background-position, e.g. 'center', '20% 30%', 'top left').
+    // The image always fills the screen and crops the rest — this just
+    // controls WHERE it crops from, so the subject never gets cut off.
+    backgroundPosition: '10% 28%',
 
     // ── Firebase (cross-device sync) ─────────────────────────────────────────
     // Leave all values empty to use local-only storage (files stay on this device only).

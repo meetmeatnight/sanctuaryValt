@@ -66,8 +66,6 @@ async function _loadFromIndexedDB(doc, ext) {
             showError('Could not decrypt file. Please log in again.');
             return;
         }
-        const sig = new Uint8Array(decrypted, 0, 5);
-        console.log('[viewer] decrypted OK —', decrypted.byteLength, 'bytes, first 5:', Array.from(sig).map(b => b.toString(16).padStart(2,'0')).join(' '));
         await _renderBuffer(decrypted, ext);
     } else {
         await _renderBuffer(rawData, ext);

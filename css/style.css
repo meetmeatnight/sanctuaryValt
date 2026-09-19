@@ -16,9 +16,22 @@
     --amber-light: #D4A870;
     --cream:       #EEE0D0;
     --muted:       #907060;
-    --glass:       rgba(255, 255, 255, 0.05);
-    --glass-b:     rgba(192, 136, 80, 0.22);
     --shadow:      rgba(0, 0, 0, 0.6);
+
+    /* ── Liquid-glass material ──────────────────────── */
+    --glass:           rgba(255, 255, 255, 0.07);
+    --glass-hi:        rgba(255, 255, 255, 0.13);
+    --glass-b:         rgba(255, 255, 255, 0.16);
+    --glass-edge:      rgba(255, 255, 255, 0.45);
+    --glass-blur:      26px;
+    --glass-blur-soft: 14px;
+    --ease-spring:     cubic-bezier(0.22, 1, 0.36, 1);
+
+    --r-xl:   30px;
+    --r-lg:   22px;
+    --r-md:   16px;
+    --r-sm:   12px;
+    --r-pill: 999px;
 
     --font-d: 'Palatino Linotype', 'Book Antiqua', Palatino, Georgia, serif;
     --font-b: Georgia, 'Times New Roman', serif;
@@ -48,7 +61,9 @@ body {
     font-family: var(--font-b);
     line-height: 1.65;
     min-height: 100vh;
+    min-height: 100dvh;
     overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
 }
 
 /* ── Background Layer ──────────────────────────── */
@@ -107,22 +122,26 @@ header, main, footer, .gate-card {
     align-items: center;
     justify-content: center;
     min-height: 100vh;
+    min-height: 100dvh;
     padding: 2rem;
+    padding-top: max(2rem, env(safe-area-inset-top));
+    padding-bottom: max(2rem, env(safe-area-inset-bottom));
 }
 
 .gate-card {
     width: 100%;
-    max-width: 380px;
+    max-width: 400px;
     background: var(--glass);
     border: 1px solid var(--glass-b);
+    border-radius: var(--r-xl);
     padding: 2.75rem 2.25rem;
     text-align: center;
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(160%);
     box-shadow:
         0 32px 64px rgba(0, 0, 0, 0.55),
-        0 0 0 1px rgba(192, 136, 80, 0.07),
-        inset 0 1px 0 rgba(255, 255, 255, 0.04);
+        inset 0 1px 0 var(--glass-edge),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.03);
 }
 
 .gate-ornament {
@@ -135,7 +154,7 @@ header, main, footer, .gate-card {
 
 .gate-title {
     font-family: var(--font-d);
-    font-size: 1.85rem;
+    font-size: clamp(1.45rem, 5vw, 1.85rem);
     font-weight: 400;
     letter-spacing: 0.09em;
     color: var(--cream);
@@ -160,24 +179,30 @@ header, main, footer, .gate-card {
 
 .password-field {
     width: 100%;
-    background: transparent;
-    border: none;
-    border-bottom: 1px solid var(--glass-b);
+    background: var(--glass);
+    border: 1px solid var(--glass-b);
+    border-radius: var(--r-md);
     color: var(--cream);
     font-family: var(--font-d);
     font-size: 1rem;
-    padding: 0.5rem 0;
+    padding: 0.9rem 1.1rem;
+    min-height: 3rem;
     text-align: center;
-    letter-spacing: 0.18em;
+    letter-spacing: 0.14em;
     outline: none;
-    transition: border-color 0.25s;
+    transition: border-color 0.25s var(--ease-spring), background 0.25s var(--ease-spring), box-shadow 0.25s var(--ease-spring);
     -webkit-user-select: text;
     -moz-user-select: text;
     user-select: text;
-    margin-bottom: 1rem;
+    margin-bottom: 0.85rem;
 }
 
-.password-field:focus { border-color: var(--amber); }
+.password-field:focus {
+    border-color: rgba(192, 136, 80, 0.55);
+    background: var(--glass-hi);
+    box-shadow: 0 0 0 4px rgba(192, 136, 80, 0.14);
+}
+
 .password-field::placeholder {
     color: var(--muted);
     font-style: italic;
@@ -202,21 +227,26 @@ header, main, footer, .gate-card {
     background: linear-gradient(135deg, var(--rose) 0%, var(--rose-deep) 100%);
     color: var(--cream);
     border: none;
-    padding: 0.8rem 1.5rem;
+    border-radius: var(--r-pill);
+    padding: 0.85rem 1.5rem;
+    min-height: 3rem;
     font-family: var(--font-u);
     font-size: 0.82rem;
     letter-spacing: 0.14em;
     text-transform: uppercase;
     cursor: pointer;
-    transition: all 0.22s;
+    transition: all 0.25s var(--ease-spring);
     margin-bottom: 1.4rem;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), 0 10px 24px rgba(139, 66, 85, 0.3);
 }
 
 .enter-btn:hover:not(:disabled) {
     background: linear-gradient(135deg, var(--rose-light) 0%, var(--rose) 100%);
-    box-shadow: 0 10px 28px rgba(139, 66, 85, 0.38);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 12px 30px rgba(139, 66, 85, 0.42);
     transform: translateY(-1px);
 }
+
+.enter-btn:active:not(:disabled) { transform: translateY(0) scale(0.98); }
 
 .enter-btn:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
 
@@ -241,14 +271,16 @@ header, main, footer, .gate-card {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 1.25rem 2rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-    background: rgba(14, 8, 16, 0.65);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
+    padding: 1.1rem 2rem;
+    padding-top: max(1.1rem, env(safe-area-inset-top));
+    border-bottom: 1px solid var(--glass-b);
+    background: rgba(14, 8, 16, 0.55);
+    backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(160%);
     position: sticky;
     top: 0;
     z-index: 10;
+    box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.04);
 }
 
 .vault-brand {
@@ -270,18 +302,21 @@ header, main, footer, .gate-card {
 }
 
 .logout-btn {
-    background: transparent;
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: var(--glass);
+    border: 1px solid var(--glass-b);
+    border-radius: var(--r-pill);
     color: var(--muted);
-    padding: 0.35rem 0.9rem;
+    padding: 0.5rem 1.1rem;
+    min-height: 2.25rem;
     font-family: var(--font-u);
     font-size: 0.73rem;
     letter-spacing: 0.07em;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.2s var(--ease-spring);
 }
 
-.logout-btn:hover { color: var(--cream); border-color: rgba(255, 255, 255, 0.28); }
+.logout-btn:hover { color: var(--cream); background: var(--glass-hi); border-color: rgba(255, 255, 255, 0.28); }
+.logout-btn:active { transform: scale(0.96); }
 
 .vault-main {
     max-width: 1100px;
@@ -297,7 +332,7 @@ header, main, footer, .gate-card {
 
 .vault-heading {
     font-family: var(--font-d);
-    font-size: 2.4rem;
+    font-size: clamp(1.5rem, 5.5vw, 2.4rem);
     font-weight: 400;
     letter-spacing: 0.05em;
     color: var(--cream);
@@ -318,20 +353,24 @@ header, main, footer, .gate-card {
 }
 
 .doc-card {
-    background: var(--card);
-    border: 1px solid rgba(255, 255, 255, 0.06);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, transparent 40%), var(--card);
+    border: 1px solid var(--glass-b);
+    border-radius: var(--r-lg);
     cursor: pointer;
-    transition: transform 0.25s, box-shadow 0.25s, border-color 0.25s;
+    transition: transform 0.3s var(--ease-spring), box-shadow 0.3s var(--ease-spring), border-color 0.3s var(--ease-spring);
     overflow: hidden;
     display: flex;
     flex-direction: column;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
 .doc-card:hover {
     transform: translateY(-5px);
-    box-shadow: 0 22px 44px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(192, 136, 80, 0.28);
+    box-shadow: 0 22px 44px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 0 0 1px rgba(192, 136, 80, 0.28);
     border-color: rgba(192, 136, 80, 0.28);
 }
+
+.doc-card:active { transform: translateY(-2px) scale(0.99); }
 
 .card-cover {
     aspect-ratio: 4 / 3;
@@ -360,12 +399,16 @@ header, main, footer, .gate-card {
     position: absolute;
     top: 0.7rem;
     right: 0.7rem;
-    background: rgba(14, 8, 16, 0.72);
-    color: var(--muted);
+    background: rgba(14, 8, 16, 0.55);
+    backdrop-filter: blur(var(--glass-blur-soft));
+    -webkit-backdrop-filter: blur(var(--glass-blur-soft));
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    color: var(--cream);
     font-family: var(--font-u);
     font-size: 0.62rem;
     letter-spacing: 0.14em;
-    padding: 0.18rem 0.48rem;
+    padding: 0.22rem 0.6rem;
+    border-radius: var(--r-pill);
     text-transform: uppercase;
 }
 
@@ -378,17 +421,21 @@ header, main, footer, .gate-card {
 }
 
 .card-action-btn {
-    background: none;
+    background: var(--glass);
     border: 1px solid transparent;
+    border-radius: var(--r-pill);
     font-family: var(--font-u);
     font-size: 0.62rem;
     letter-spacing: 0.08em;
     text-transform: uppercase;
     cursor: pointer;
-    padding: 0.2rem 0.5rem;
-    transition: color 0.15s, border-color 0.15s, background 0.15s;
+    padding: 0.3rem 0.65rem;
+    min-height: 1.8rem;
+    transition: color 0.18s var(--ease-spring), border-color 0.18s var(--ease-spring), background 0.18s var(--ease-spring), transform 0.18s var(--ease-spring);
     flex-shrink: 0;
 }
+
+.card-action-btn:active { transform: scale(0.94); }
 
 .card-action-del {
     color: rgba(224, 112, 112, 0.65);
@@ -442,18 +489,23 @@ header, main, footer, .gate-card {
     position: absolute;
     bottom: 0.6rem;
     left: 0.6rem;
-    background: rgba(14, 8, 16, 0.78);
+    background: rgba(14, 8, 16, 0.6);
+    backdrop-filter: blur(var(--glass-blur-soft));
+    -webkit-backdrop-filter: blur(var(--glass-blur-soft));
     border: 1px solid rgba(192, 136, 80, 0.4);
+    border-radius: var(--r-pill);
     color: var(--amber);
     font-family: var(--font-u);
     font-size: 0.6rem;
     letter-spacing: 0.1em;
-    padding: 0.22rem 0.55rem;
+    padding: 0.28rem 0.65rem;
     cursor: pointer;
     opacity: 0;
-    transition: opacity 0.18s, background 0.15s;
+    transition: opacity 0.18s var(--ease-spring), background 0.15s var(--ease-spring), transform 0.15s var(--ease-spring);
     z-index: 2;
 }
+
+.card-bg-btn:active { transform: scale(0.94); }
 
 .doc-card:hover .card-bg-btn { opacity: 1; }
 .card-bg-btn:hover { background: rgba(192, 136, 80, 0.18); }
@@ -500,6 +552,7 @@ header, main, footer, .gate-card {
 .vault-footer {
     text-align: center;
     padding: 2rem;
+    padding-bottom: max(2rem, env(safe-area-inset-bottom));
     font-family: var(--font-u);
     font-size: 0.7rem;
     color: var(--muted);
@@ -540,27 +593,33 @@ header, main, footer, .gate-card {
     align-items: center;
     gap: 1rem;
     padding: 0.95rem 1.5rem;
-    background: rgba(14, 8, 16, 0.92);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    padding-top: max(0.95rem, env(safe-area-inset-top));
+    background: rgba(14, 8, 16, 0.6);
+    backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+    border-bottom: 1px solid var(--glass-b);
     position: sticky;
     top: 0;
     z-index: 10;
 }
 
 .back-btn {
-    background: transparent;
-    border: none;
+    background: var(--glass);
+    border: 1px solid var(--glass-b);
+    border-radius: var(--r-pill);
     color: var(--muted);
     font-family: var(--font-u);
     font-size: 0.83rem;
     cursor: pointer;
-    padding: 0.35rem 0;
-    transition: color 0.2s;
+    padding: 0.4rem 0.9rem;
+    min-height: 2.25rem;
+    transition: color 0.2s var(--ease-spring), background 0.2s var(--ease-spring);
     white-space: nowrap;
     flex-shrink: 0;
 }
 
-.back-btn:hover { color: var(--cream); }
+.back-btn:hover { color: var(--cream); background: var(--glass-hi); }
+.back-btn:active { transform: scale(0.96); }
 
 .viewer-title {
     font-family: var(--font-d);
@@ -580,6 +639,7 @@ header, main, footer, .gate-card {
     flex: 1;
     overflow-y: auto;
     padding: 2.5rem 1rem 4rem;
+    padding-bottom: max(4rem, calc(env(safe-area-inset-bottom) + 2rem));
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -645,19 +705,19 @@ header, main, footer, .gate-card {
 /* Large phone / small tablet */
 @media (max-width: 640px) {
     /* Header */
-    .vault-header       { padding: 0.85rem 1rem; }
+    .vault-header       { padding: 0.75rem 1rem; padding-top: max(0.75rem, env(safe-area-inset-top)); }
     .vault-brand        { font-size: 0.88rem; }
-    .logout-btn         { padding: 0.45rem 0.8rem; font-size: 0.72rem; }
+    .vault-header-actions { gap: 0.4rem; }
+    .logout-btn         { padding: 0.4rem 0.75rem; font-size: 0.7rem; min-height: 2rem; }
 
     /* Main */
     .vault-main         { padding: 1.5rem 0.9rem 3rem; }
-    .vault-heading      { font-size: 1.75rem; }
     .vault-hero         { margin-bottom: 1.75rem; padding-bottom: 1.25rem; }
 
     /* Hero top — stack vertically, full-width buttons */
     .vault-hero-top     { flex-direction: column; align-items: stretch; gap: 0.85rem; }
     .vault-actions      { display: flex; justify-content: stretch; gap: 0.5rem; }
-    .action-btn         { flex: 1; text-align: center; padding: 0.6rem 0.5rem; font-size: 0.72rem; min-height: 2.5rem; }
+    .action-btn         { flex: 1; text-align: center; padding: 0.6rem 0.5rem; font-size: 0.72rem; min-height: 2.75rem; }
 
     /* Grid: 2 columns on phones */
     .docs-grid          { grid-template-columns: repeat(2, 1fr); gap: 0.75rem; }
@@ -667,41 +727,45 @@ header, main, footer, .gate-card {
     .card-title         { font-size: 0.88rem; }
     .card-desc          { font-size: 0.75rem; }
     .card-footer        { padding-top: 0.4rem; }
-    .card-action-btn    { padding: 0.25rem 0.4rem; font-size: 0.58rem; }
+    .card-action-btn    { padding: 0.3rem 0.55rem; font-size: 0.6rem; min-height: 1.7rem; }
 
     /* Folder cards */
-    .folder-card        { padding: 0.9rem 1rem; gap: 0.75rem; }
+    .folder-card        { padding: 0.9rem 1rem; }
+    .folder-main        { gap: 0.75rem; }
     .folder-icon        { width: 32px; height: 32px; }
     .folder-name        { font-size: 0.88rem; }
 
     /* Gate */
-    .gate-card          { padding: 2rem 1.25rem; }
-    .gate-title         { font-size: 1.6rem; }
+    .gate-card          { padding: 2rem 1.25rem; border-radius: var(--r-lg); }
 
     /* Viewer */
-    .viewer-header      { padding: 0.75rem 1rem; gap: 0.5rem; }
+    .viewer-header      { padding: 0.75rem 1rem; padding-top: max(0.75rem, env(safe-area-inset-top)); gap: 0.5rem; }
     .viewer-spacer      { width: 32px; }
     .viewer-title       { font-size: 0.88rem; }
     .viewer-main        { padding: 1.5rem 0.5rem 3rem; }
 
     /* Modals */
     .modal-overlay      { padding: 1rem; }
-    .modal-card         { padding: 1.5rem 1.25rem; }
+    .modal-card         { padding: 1.5rem 1.25rem; border-radius: var(--r-lg); }
     .modal-actions      { gap: 0.6rem; }
-    .modal-btn          { padding: 0.55rem 1rem; font-size: 0.71rem; min-height: 2.5rem; }
+    .modal-btn          { padding: 0.55rem 1rem; font-size: 0.71rem; min-height: 2.6rem; }
 
     /* Breadcrumb */
     .breadcrumb         { font-size: 0.7rem; gap: 0.2rem; margin-top: 0.85rem; padding-top: 0.85rem; }
-    .crumb              { font-size: 0.7rem; padding: 0.2rem 0.25rem; }
+    .crumb              { font-size: 0.7rem; padding: 0.25rem 0.5rem; }
 }
 
 /* Small phones — single column */
 @media (max-width: 400px) {
     .vault-main         { padding: 1.25rem 0.75rem 2.5rem; }
-    .vault-heading      { font-size: 1.5rem; }
-    .gate-title         { font-size: 1.45rem; }
     .docs-grid          { grid-template-columns: 1fr; }
     .modal-overlay      { padding: 0.75rem; }
+}
+
+/* Landscape phones with limited height — keep modals fully reachable */
+@media (max-height: 480px) and (orientation: landscape) {
+    .modal-card         { max-height: 94vh; padding: 1.25rem 1.5rem; }
+    .page-gate          { align-items: flex-start; padding-top: 1.5rem; }
 }
 
 /* Touch devices — always show wallpaper button (no hover available) */
@@ -728,33 +792,39 @@ header, main, footer, .gate-card {
 }
 
 .action-btn {
-    background: transparent;
-    border: 1px solid rgba(255, 255, 255, 0.14);
+    background: var(--glass);
+    border: 1px solid var(--glass-b);
+    border-radius: var(--r-pill);
     color: var(--muted);
-    padding: 0.45rem 1rem;
+    padding: 0.5rem 1.1rem;
+    min-height: 2.5rem;
     font-family: var(--font-u);
     font-size: 0.75rem;
     letter-spacing: 0.08em;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.2s var(--ease-spring);
     white-space: nowrap;
 }
 
 .action-btn:hover {
     color: var(--cream);
+    background: var(--glass-hi);
     border-color: rgba(255, 255, 255, 0.3);
 }
+
+.action-btn:active { transform: scale(0.96); }
 
 .action-btn-primary {
     background: linear-gradient(135deg, var(--rose) 0%, var(--rose-deep) 100%);
     border-color: transparent;
     color: var(--cream);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
 .action-btn-primary:hover {
     background: linear-gradient(135deg, var(--rose-light) 0%, var(--rose) 100%);
     border-color: transparent;
-    box-shadow: 0 6px 20px rgba(139, 66, 85, 0.38);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.26), 0 6px 20px rgba(139, 66, 85, 0.38);
 }
 
 /* ── Breadcrumb ──────────────────────────────────── */
@@ -774,14 +844,17 @@ header, main, footer, .gate-card {
 .crumb {
     background: none;
     border: none;
+    border-radius: var(--r-pill);
     color: var(--muted);
     cursor: pointer;
     font-family: var(--font-u);
     font-size: 0.75rem;
-    padding: 0.2rem 0.35rem;
-    transition: color 0.2s;
+    padding: 0.3rem 0.6rem;
+    transition: color 0.2s var(--ease-spring), background 0.2s var(--ease-spring);
     letter-spacing: 0.04em;
 }
+
+.crumb:active { background: var(--glass); }
 
 .crumb:hover   { color: var(--cream); }
 .crumb-active  { color: var(--cream); cursor: default; }
@@ -789,12 +862,16 @@ header, main, footer, .gate-card {
 
 /* ── Folder Card ─────────────────────────────────── */
 .folder-card {
-    background: var(--card);
-    border: 1px solid rgba(192, 136, 80, 0.14);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, transparent 40%), var(--card);
+    border: 1px solid rgba(192, 136, 80, 0.18);
+    border-radius: var(--r-lg);
     cursor: pointer;
-    transition: transform 0.22s, box-shadow 0.22s, border-color 0.22s;
+    transition: transform 0.3s var(--ease-spring), box-shadow 0.3s var(--ease-spring), border-color 0.3s var(--ease-spring);
     padding: 1.1rem 1.25rem;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
+
+.folder-card:active { transform: scale(0.99); }
 
 .folder-main {
     display: flex;
@@ -868,22 +945,30 @@ header, main, footer, .gate-card {
     position: fixed;
     inset: 0;
     z-index: 100;
-    background: rgba(0, 0, 0, 0.75);
+    background: rgba(0, 0, 0, 0.55);
     display: flex;
     align-items: center;
     justify-content: center;
     padding: 1.5rem;
-    backdrop-filter: blur(5px);
-    -webkit-backdrop-filter: blur(5px);
+    padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
 }
 
 .modal-card {
-    background: var(--surface);
+    background: rgba(26, 14, 22, 0.72);
     border: 1px solid var(--glass-b);
+    border-radius: var(--r-xl);
     padding: 2rem 1.75rem;
     width: 100%;
     max-width: 400px;
-    box-shadow: 0 32px 64px rgba(0, 0, 0, 0.65);
+    max-height: 88vh;
+    overflow-y: auto;
+    backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+    box-shadow:
+        0 32px 64px rgba(0, 0, 0, 0.65),
+        inset 0 1px 0 var(--glass-edge);
 }
 
 .modal-card-wide {
@@ -902,9 +987,10 @@ header, main, footer, .gate-card {
     display: flex;
     flex-direction: column;
     gap: 0.4rem;
-    padding: 0.65rem 0.8rem;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.06);
+    padding: 0.7rem 0.9rem;
+    background: var(--glass);
+    border: 1px solid var(--glass-b);
+    border-radius: var(--r-md);
 }
 
 .admin-login-top {
@@ -919,7 +1005,8 @@ header, main, footer, .gate-card {
     font-size: 0.65rem;
     letter-spacing: 0.06em;
     text-transform: uppercase;
-    padding: 0.2rem 0.5rem;
+    padding: 0.25rem 0.6rem;
+    border-radius: var(--r-pill);
     border: 1px solid rgba(255, 255, 255, 0.14);
     color: var(--muted);
     flex-shrink: 0;
@@ -975,12 +1062,24 @@ header, main, footer, .gate-card {
 
 .modal-field { margin-bottom: 1.1rem; }
 
+.bg-preview-img {
+    display: block;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+    border-radius: var(--r-md);
+    border: 1px solid var(--glass-b);
+    background: var(--card);
+}
+
 .upload-zone {
     display: flex;
     align-items: center;
     justify-content: center;
     min-height: 3.4rem;
-    border: 1px dashed rgba(192, 136, 80, 0.35);
+    border: 1.5px dashed rgba(192, 136, 80, 0.35);
+    border-radius: var(--r-md);
+    background: var(--glass);
     cursor: pointer;
     padding: 0.9rem 1rem;
     text-align: center;
@@ -988,7 +1087,7 @@ header, main, footer, .gate-card {
     font-family: var(--font-u);
     font-size: 0.75rem;
     letter-spacing: 0.1em;
-    transition: border-color 0.2s, background 0.2s, color 0.2s;
+    transition: border-color 0.2s var(--ease-spring), background 0.2s var(--ease-spring), color 0.2s var(--ease-spring);
 }
 
 .upload-zone:hover {
@@ -1022,24 +1121,26 @@ header, main, footer, .gate-card {
 
 .modal-input {
     width: 100%;
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--glass);
+    border: 1px solid var(--glass-b);
     color: var(--cream);
     font-family: var(--font-b);
     font-size: 0.9rem;
-    padding: 0.6rem 0.75rem;
+    padding: 0.65rem 0.85rem;
+    min-height: 2.75rem;
     outline: none;
-    transition: border-color 0.2s, background 0.2s;
+    transition: border-color 0.2s var(--ease-spring), background 0.2s var(--ease-spring), box-shadow 0.2s var(--ease-spring);
     -webkit-user-select: text;
     -moz-user-select: text;
     user-select: text;
     resize: none;
-    border-radius: 0;
+    border-radius: var(--r-sm);
 }
 
 .modal-input:focus {
-    border-color: var(--amber);
-    background: rgba(255, 255, 255, 0.07);
+    border-color: rgba(192, 136, 80, 0.55);
+    background: var(--glass-hi);
+    box-shadow: 0 0 0 4px rgba(192, 136, 80, 0.14);
 }
 
 .modal-input::placeholder { color: var(--muted); font-style: italic; opacity: 0.7; }
@@ -1054,43 +1155,50 @@ header, main, footer, .gate-card {
 }
 
 .modal-btn {
-    background: transparent;
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: var(--glass);
+    border: 1px solid var(--glass-b);
+    border-radius: var(--r-pill);
     color: var(--muted);
-    padding: 0.5rem 1.25rem;
+    padding: 0.55rem 1.3rem;
+    min-height: 2.6rem;
     font-family: var(--font-u);
     font-size: 0.74rem;
     letter-spacing: 0.1em;
     text-transform: uppercase;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.2s var(--ease-spring);
 }
 
 .modal-btn:hover:not(:disabled) {
     color: var(--cream);
+    background: var(--glass-hi);
     border-color: rgba(255, 255, 255, 0.3);
 }
+
+.modal-btn:active:not(:disabled) { transform: scale(0.96); }
 
 .modal-btn-primary {
     background: linear-gradient(135deg, var(--rose) 0%, var(--rose-deep) 100%);
     border-color: transparent;
     color: var(--cream);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
 .modal-btn-primary:hover:not(:disabled) {
     background: linear-gradient(135deg, var(--rose-light) 0%, var(--rose) 100%);
-    box-shadow: 0 6px 20px rgba(139, 66, 85, 0.38);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.26), 0 6px 20px rgba(139, 66, 85, 0.38);
 }
 
 .modal-btn-danger {
     background: linear-gradient(135deg, #a33 0%, #7a1a1a 100%);
     border-color: transparent;
     color: var(--cream);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
 .modal-btn-danger:hover:not(:disabled) {
     background: linear-gradient(135deg, #c44 0%, #a33 100%);
-    box-shadow: 0 6px 20px rgba(160, 50, 50, 0.38);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.26), 0 6px 20px rgba(160, 50, 50, 0.38);
 }
 
 .modal-btn:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -1115,21 +1223,27 @@ header, main, footer, .gate-card {
 /* ── Toast notification ──────────────────────────── */
 .vault-toast {
     position: fixed;
-    bottom: 2rem;
+    bottom: max(2rem, calc(env(safe-area-inset-bottom) + 1.25rem));
     left: 50%;
     transform: translateX(-50%) translateY(5rem);
-    background: var(--card);
+    background: rgba(34, 18, 25, 0.75);
+    backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(160%);
     border: 1px solid rgba(192, 136, 80, 0.5);
+    border-radius: var(--r-pill);
     color: var(--amber);
-    padding: 0.65rem 1.4rem;
+    padding: 0.7rem 1.5rem;
     font-family: var(--font-u);
     font-size: 0.75rem;
     letter-spacing: 0.1em;
     z-index: 9999;
     opacity: 0;
-    transition: transform 0.28s ease, opacity 0.28s ease;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+    transition: transform 0.28s var(--ease-spring), opacity 0.28s var(--ease-spring);
     pointer-events: none;
-    white-space: nowrap;
+    white-space: normal;
+    max-width: calc(100vw - 3rem);
+    text-align: center;
 }
 
 .vault-toast-show {

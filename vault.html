@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="robots" content="noindex, nofollow">
     <title>Our Sanctuary</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌹</text></svg>">
@@ -18,6 +18,7 @@
             <span class="brand-title">Our Sanctuary</span>
         </div>
         <div class="vault-header-actions">
+            <button class="action-btn" id="btn-background" hidden>Background</button>
             <button class="action-btn" id="btn-admin-panel" hidden>Login History</button>
             <button class="logout-btn" onclick="logout()">Sign out</button>
         </div>
@@ -144,6 +145,36 @@
         </div>
     </div>
 
+    <!-- ── Background Modal ────────────────────────────────── -->
+    <div class="modal-overlay" id="modal-background" hidden
+         role="dialog" aria-modal="true" aria-labelledby="modal-background-title">
+        <div class="modal-card">
+            <div class="modal-head">
+                <h3 class="modal-title" id="modal-background-title">Site Background</h3>
+                <button class="modal-close" type="button" id="background-modal-close" aria-label="Close">✕</button>
+            </div>
+            <div class="modal-field">
+                <label class="modal-label">Current background</label>
+                <img id="bg-preview" alt="Current background" class="bg-preview-img">
+            </div>
+            <div class="modal-field">
+                <label class="modal-label" for="bg-file-input">Replace with a new photo</label>
+                <label class="upload-zone" for="bg-file-input" id="bg-upload-zone">
+                    <span id="bg-upload-zone-text">↑  Choose a photo…</span>
+                </label>
+                <input type="file" id="bg-file-input"
+                    accept=".jpg,.jpeg,.png,.gif,.webp,.avif,.bmp" hidden>
+            </div>
+            <p class="modal-error" id="background-error" hidden></p>
+            <div class="modal-actions">
+                <button class="modal-btn" id="background-reset">Reset to default</button>
+                <button class="modal-btn modal-btn-primary" id="background-save">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- PDF.js — renders a page-1 thumbnail for uploaded PDFs -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script src="js/config.js"></script>
     <script src="js/crypto.js"></script>
     <script src="js/auth.js"></script>

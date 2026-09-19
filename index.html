@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="robots" content="noindex, nofollow">
     <meta name="description" content="Private space">
     <title>Our Sanctuary</title>
@@ -60,10 +60,15 @@
             document.title = CONFIG.siteTitle;
             document.getElementById('gate-title').textContent = CONFIG.siteTitle;
         }
-        if (CONFIG.backgroundImage) {
+        // An admin-set custom background (synced from vault.html) takes priority over the bundled default.
+        const _bgSrc = localStorage.getItem('sanctuary-custom-bg') || CONFIG.backgroundImage;
+        if (_bgSrc) {
             const _layer = document.querySelector('.bg-layer');
-            if (_layer) _layer.style.backgroundImage =
-                `linear-gradient(rgba(14,8,16,.72),rgba(14,8,16,.72)), url('${CONFIG.backgroundImage}')`;
+            if (_layer) {
+                _layer.style.backgroundImage =
+                    `linear-gradient(rgba(14,8,16,.72),rgba(14,8,16,.72)), url('${_bgSrc}')`;
+                _layer.style.backgroundPosition = CONFIG.backgroundPosition || 'center';
+            }
         }
 
         // Skip gate if already authenticated; unhide only after the async check

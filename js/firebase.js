@@ -120,6 +120,30 @@ async function fbPullFile(key) {
     } catch (e) { console.error('[firebase] fbPullFile:', e); return null; }
 }
 
+// ── Site background (plaintext — shown pre-login, so it can't live inside the encrypted vault) ──
+
+async function fbPushBackground(dataUrl) {
+    if (!_fb) return;
+    try {
+        await _fb.setDoc(_fb.doc(_fb.db, 'settings', 'background'), { image: dataUrl });
+    } catch (e) { console.error('[firebase] fbPushBackground:', e); }
+}
+
+async function fbPullBackground() {
+    if (!_fb) return null;
+    try {
+        const snap = await _fb.getDoc(_fb.doc(_fb.db, 'settings', 'background'));
+        return snap.exists() ? snap.data().image : null;
+    } catch (e) { console.error('[firebase] fbPullBackground:', e); return null; }
+}
+
+async function fbDeleteBackground() {
+    if (!_fb) return;
+    try {
+        await _fb.deleteDoc(_fb.doc(_fb.db, 'settings', 'background'));
+    } catch (e) { console.error('[firebase] fbDeleteBackground:', e); }
+}
+
 // ── Login history (admin panel) ────────────────────────────────────────────
 
 async function fbLogLogin(entry) {

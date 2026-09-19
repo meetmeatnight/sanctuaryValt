@@ -7,6 +7,9 @@ const COVER_CYCLE = ['cover-1','cover-2','cover-3','cover-4','cover-5','cover-6'
 async function initVault() {
     // Apply config background immediately (inline style resolves URL relative to document, not CSS file)
     if (CONFIG.backgroundImage) applyBgLayer(CONFIG.backgroundImage);
+    // Admin-set global background overrides it, if one's been chosen (cached locally, refreshed below)
+    const cachedCustomBg = localStorage.getItem('sanctuary-custom-bg');
+    if (cachedCustomBg) applyBgLayer(cachedCustomBg);
 
     if (CONFIG.siteTitle) {
         document.title = CONFIG.siteTitle;
@@ -42,6 +45,13 @@ async function initVault() {
                     fbPushMeta(localMeta).catch(() => {});
                 }
             }
+
+            // Refresh the global background from the cloud in case another device changed it
+            const cloudBg = await fbPullBackground().catch(() => null);
+            if (cloudBg && cloudBg !== cachedCustomBg) {
+                localStorage.setItem('sanctuary-custom-bg', cloudBg);
+                applyBgLayer(cloudBg);
+            }
         }
     }
 
@@ -50,10 +60,11 @@ async function initVault() {
     // Override background with vault image if user has set one
     await applyStoredBackground();
 
-    try { setupFolderModal();  } catch (e) { console.error('[init] setupFolderModal:', e); }
-    try { setupUploadModal();  } catch (e) { console.error('[init] setupUploadModal:', e); }
-    try { setupDeleteModal();  } catch (e) { console.error('[init] setupDeleteModal:', e); }
-    try { setupAdminPanel();   } catch (e) { console.error('[init] setupAdminPanel:', e); }
+    try { setupFolderModal();     } catch (e) { console.error('[init] setupFolderModal:', e); }
+    try { setupUploadModal();     } catch (e) { console.error('[init] setupUploadModal:', e); }
+    try { setupDeleteModal();     } catch (e) { console.error('[init] setupDeleteModal:', e); }
+    try { setupAdminPanel();      } catch (e) { console.error('[init] setupAdminPanel:', e); }
+    try { setupBackgroundModal(); } catch (e) { console.error('[init] setupBackgroundModal:', e); }
     applyRolePermissions();
     logLoginOnce();
     renderBreadcrumb();
@@ -67,9 +78,11 @@ function applyRolePermissions() {
     const btnFolder = document.getElementById('btn-new-folder');
     const btnUpload = document.getElementById('btn-upload');
     const btnAdmin  = document.getElementById('btn-admin-panel');
+    const btnBg     = document.getElementById('btn-background');
     if (btnFolder) btnFolder.hidden = !admin;
     if (btnUpload) btnUpload.hidden = !admin;
     if (btnAdmin)  btnAdmin.hidden  = !admin;
+    if (btnBg)     btnBg.hidden     = !admin;
 }
 
 // Records this session's login (name, role, device, IP, location) once, for the admin login-history panel.
@@ -96,6 +109,7 @@ function applyBgLayer(src) {
     if (!layer) return;
     layer.style.backgroundImage =
         'linear-gradient(rgba(14,8,16,.72),rgba(14,8,16,.72)), url("' + src.replace(/"/g, '\\"') + '")';
+    layer.style.backgroundPosition = CONFIG.backgroundPosition || 'center';
 }
 
 // Loads vault background from IndexedDB (if user has set one) and applies it
@@ -142,6 +156,109 @@ async function setAsBackground(docId) {
     } catch (err) {
         console.error('[bg] setAsBackground failed:', err);
     }
+}
+
+// ── Site Background (admin-managed, plaintext, synced across devices) ───────
+
+// Downscales a photo for use as a full-screen background and returns a JPEG data URL.
+// Not encrypted — this is shown on the gate page, before anyone has entered a password.
+async function _resizeImageDataUrl(plainBuf, mime, maxDim, quality) {
+    const blob = new Blob([plainBuf], { type: mime });
+    const url  = URL.createObjectURL(blob);
+    try {
+        const img = await new Promise((resolve, reject) => {
+            const el = new Image();
+            el.onload  = () => resolve(el);
+            el.onerror = reject;
+            el.src = url;
+        });
+        const scale  = Math.min(1, maxDim / Math.max(img.naturalWidth, img.naturalHeight));
+        const canvas = document.createElement('canvas');
+        canvas.width  = Math.max(1, Math.round(img.naturalWidth * scale));
+        canvas.height = Math.max(1, Math.round(img.naturalHeight * scale));
+        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+        return canvas.toDataURL('image/jpeg', quality);
+    } finally {
+        URL.revokeObjectURL(url);
+    }
+}
+
+function setupBackgroundModal() {
+    const btn       = document.getElementById('btn-background');
+    const modal     = document.getElementById('modal-background');
+    if (!btn || !modal) return;
+
+    const closeBtn  = document.getElementById('background-modal-close');
+    const preview   = document.getElementById('bg-preview');
+    const fileInput = document.getElementById('bg-file-input');
+    const zoneText  = document.getElementById('bg-upload-zone-text');
+    const zone      = document.getElementById('bg-upload-zone');
+    const errorEl   = document.getElementById('background-error');
+    const saveBtn   = document.getElementById('background-save');
+    const resetBtn  = document.getElementById('background-reset');
+
+    let pendingDataUrl = null;
+    const currentSrc = () => localStorage.getItem('sanctuary-custom-bg') || CONFIG.backgroundImage || '';
+
+    const openModal = () => {
+        pendingDataUrl = null;
+        fileInput.value = '';
+        if (zoneText) zoneText.textContent = '↑  Choose a photo…';
+        if (zone) zone.classList.remove('has-file');
+        if (errorEl) errorEl.hidden = true;
+        preview.src = currentSrc();
+        modal.hidden = false;
+    };
+    btn.addEventListener('click', openModal);
+
+    fileInput.addEventListener('change', e => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = async ev => {
+            try {
+                const buf  = dataUrlToArrayBuffer(ev.target.result);
+                const mime = extToMime(file.name.split('.').pop().toLowerCase());
+                pendingDataUrl = await _resizeImageDataUrl(buf, mime, 1600, 0.78);
+                preview.src = pendingDataUrl;
+                if (zoneText) zoneText.textContent = '✓  ' + file.name;
+                if (zone) zone.classList.add('has-file');
+                if (errorEl) errorEl.hidden = true;
+            } catch (err) {
+                console.error('[background] could not process image:', err);
+                if (errorEl) { errorEl.textContent = 'Could not read that image.'; errorEl.hidden = false; }
+            }
+        };
+        reader.readAsDataURL(file);
+    });
+
+    const closeModal = () => { modal.hidden = true; };
+    closeBtn.addEventListener('click', closeModal);
+    modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
+
+    saveBtn.addEventListener('click', async () => {
+        if (!pendingDataUrl) { closeModal(); return; }
+        saveBtn.disabled    = true;
+        saveBtn.textContent = 'Saving…';
+        try {
+            localStorage.setItem('sanctuary-custom-bg', pendingDataUrl);
+            applyBgLayer(pendingDataUrl);
+            if (typeof fbPushBackground === 'function') await fbPushBackground(pendingDataUrl).catch(() => {});
+            showToast('✓  Background updated');
+            closeModal();
+        } finally {
+            saveBtn.disabled    = false;
+            saveBtn.textContent = 'Save';
+        }
+    });
+
+    resetBtn.addEventListener('click', async () => {
+        localStorage.removeItem('sanctuary-custom-bg');
+        applyBgLayer(CONFIG.backgroundImage);
+        preview.src = CONFIG.backgroundImage || '';
+        if (typeof fbDeleteBackground === 'function') await fbDeleteBackground().catch(() => {});
+        showToast('Background reset to default');
+    });
 }
 
 // ── Breadcrumb ──────────────────────────────────────────────────────────────
@@ -210,6 +327,8 @@ function renderGrid() {
     grid.innerHTML =
         subFolders.map(renderFolderCard).join('') +
         [...visibleStatic, ...userDocs].map(renderDocCard).join('');
+
+    hydrateThumbnails();
 
     // Folder: navigate on card click, but not if an action button was clicked
     grid.querySelectorAll('.folder-card').forEach(card => {
@@ -281,7 +400,9 @@ const IMAGE_TYPES = new Set(['jpg','jpeg','png','gif','webp','avif','bmp']);
 function renderDocCard(doc) {
     const typeLabel  = (doc.type || 'file').toUpperCase();
     const coverClass = doc.coverClass || 'cover-1';
-    const coverImg   = doc.coverImage ? `<img src="${escHtml(doc.coverImage)}" alt="" draggable="false">` : '';
+    const coverImg   = doc.coverImage
+        ? `<img src="${escHtml(doc.coverImage)}" alt="" draggable="false">`
+        : (doc.thumb ? `<img class="card-thumb-img" data-doc-id="${escHtml(doc.id)}" alt="" draggable="false" hidden>` : '');
     const admin      = isAdmin();
     const hidden     = doc.visible === false;
     return `
@@ -352,6 +473,83 @@ function setupFolderModal() {
     input.addEventListener('keydown', e => {
         if (e.key === 'Enter')  doCreate();
         if (e.key === 'Escape') closeFolder();
+    });
+}
+
+// ── Cover thumbnails ─────────────────────────────────────────────────────────
+// Generated once at upload time (not on every render) and cached on the doc,
+// so opening the vault never has to decrypt/render full files just to show a grid.
+
+const THUMB_MAX_DIM = 220;
+const THUMB_QUALITY = 0.55;
+
+async function _generateThumbnail(plainBuf, ext) {
+    if (IMAGE_TYPES.has(ext)) return _thumbFromImage(plainBuf, ext);
+    if (ext === 'pdf')        return _thumbFromPdf(plainBuf);
+    return null;
+}
+
+async function _thumbFromImage(plainBuf, ext) {
+    const blob = new Blob([plainBuf], { type: extToMime(ext) });
+    const url  = URL.createObjectURL(blob);
+    try {
+        const img = await new Promise((resolve, reject) => {
+            const el = new Image();
+            el.onload  = () => resolve(el);
+            el.onerror = reject;
+            el.src = url;
+        });
+        return _drawThumb(img, img.naturalWidth, img.naturalHeight);
+    } finally {
+        URL.revokeObjectURL(url);
+    }
+}
+
+async function _thumbFromPdf(plainBuf) {
+    if (typeof pdfjsLib === 'undefined') return null;
+    pdfjsLib.GlobalWorkerOptions.workerSrc =
+        'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+    const pdf  = await pdfjsLib.getDocument({ data: new Uint8Array(plainBuf) }).promise;
+    const page = await pdf.getPage(1);
+    const base = page.getViewport({ scale: 1 });
+    const scale = THUMB_MAX_DIM / Math.max(base.width, base.height);
+    const viewport = page.getViewport({ scale });
+
+    const canvas = document.createElement('canvas');
+    canvas.width  = Math.max(1, Math.round(viewport.width));
+    canvas.height = Math.max(1, Math.round(viewport.height));
+    await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+    return dataUrlToArrayBuffer(canvas.toDataURL('image/jpeg', THUMB_QUALITY));
+}
+
+function _drawThumb(imgEl, srcW, srcH) {
+    const scale  = Math.min(1, THUMB_MAX_DIM / Math.max(srcW, srcH));
+    const canvas = document.createElement('canvas');
+    canvas.width  = Math.max(1, Math.round(srcW * scale));
+    canvas.height = Math.max(1, Math.round(srcH * scale));
+    canvas.getContext('2d').drawImage(imgEl, 0, 0, canvas.width, canvas.height);
+    return dataUrlToArrayBuffer(canvas.toDataURL('image/jpeg', THUMB_QUALITY));
+}
+
+// Decrypts and fills in each card's cached thumbnail after the grid is already on screen,
+// so rendering the grid itself never has to wait on decryption.
+function hydrateThumbnails() {
+    document.querySelectorAll('.card-thumb-img[data-doc-id]').forEach(async img => {
+        const doc = vaultMeta.documents.find(d => d.id === img.dataset.docId);
+        if (!doc || !doc.thumb) return;
+        try {
+            let buf = _b64ToBuf(doc.thumb);
+            if (doc.thumbEncrypted) {
+                const key = await loadKeyFromSession();
+                if (!key) return;
+                buf = await decryptBuf(key, buf);
+            }
+            img.src    = arrayBufferToDataUrl(buf, 'image/jpeg');
+            img.hidden = false;
+        } catch (e) {
+            console.warn('[thumb] decrypt failed for', doc.id, e);
+        }
     });
 }
 
@@ -469,6 +667,19 @@ async function saveUpload() {
         await storeFile(storageKey, storageData);
         console.log('[save] step 4 done');
 
+        // Best-effort cover thumbnail — a card with no thumb just keeps the gradient placeholder.
+        let thumbFields = {};
+        try {
+            const thumbBuf = await _generateThumbnail(plainBuf, currentUpload.ext);
+            if (thumbBuf) {
+                thumbFields = key
+                    ? { thumb: _bufToB64(await encryptBuf(key, thumbBuf)), thumbEncrypted: true }
+                    : { thumb: _bufToB64(thumbBuf), thumbEncrypted: false };
+            }
+        } catch (e) {
+            console.warn('[save] thumbnail generation failed:', e);
+        }
+
         const doc = {
             id,
             title,
@@ -479,7 +690,8 @@ async function saveUpload() {
             encrypted,
             date:        formatDate(Date.now()),
             coverClass:  COVER_CYCLE[vaultMeta.documents.length % COVER_CYCLE.length],
-            visible:     false // hidden from the regular login until admin allows it
+            visible:     false, // hidden from the regular login until admin allows it
+            ...thumbFields
         };
 
         console.log('[save] step 5 — saving metadata to localStorage');

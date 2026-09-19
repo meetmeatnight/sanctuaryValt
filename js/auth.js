@@ -140,5 +140,6 @@ async function getIpInfo() {
 
 function logout() {
     sessionStorage.clear(); // clears auth, vaultKey, authAt, role, loginLogged
+    localStorage.removeItem('sanctuary-login-name'); // don't carry the name past a logout
     window.location.href = 'index.html';
 }
