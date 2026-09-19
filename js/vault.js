@@ -170,14 +170,30 @@ function closeAllPageSheets() {
     document.querySelectorAll('.page-sheet').forEach(el => { el.hidden = true; });
 }
 
-// Keeps body.sheet-open in sync with whether any .page-sheet is currently visible
-// (see the CSS rule it drives), regardless of which one opened or closed it —
+// Which bottom-nav item should be highlighted while a given page-sheet is open.
+// Trash has no nav item of its own (it's reached from inside Profile), so it keeps
+// Profile highlighted rather than lighting up nothing.
+const SHEET_NAV_MAP = {
+    'modal-compose':    'nav-write',
+    'modal-background': 'nav-background',
+    'modal-admin':      'nav-history',
+    'modal-profile':    'nav-profile',
+    'modal-trash':      'nav-profile'
+};
+
+function setActiveNavItem(navId) {
+    document.querySelectorAll('.bottom-nav-item').forEach(el => el.classList.toggle('is-active', el.id === navId));
+}
+
+// Keeps body.sheet-open AND the bottom nav's highlighted tab in sync with whichever
+// .page-sheet is actually visible, regardless of which one opened or closed it —
 // covers Trash opening/closing on top of Profile too, not just the nav-level sheets.
 function setupPageSheetBodyClass() {
     const sheets = document.querySelectorAll('.page-sheet');
     const sync = () => {
-        const anyOpen = Array.from(sheets).some(el => !el.hidden);
-        document.body.classList.toggle('sheet-open', anyOpen);
+        const openSheet = Array.from(sheets).find(el => !el.hidden);
+        document.body.classList.toggle('sheet-open', !!openSheet);
+        setActiveNavItem(openSheet ? (SHEET_NAV_MAP[openSheet.id] || 'nav-collection') : 'nav-collection');
     };
     sheets.forEach(el => new MutationObserver(sync).observe(el, { attributes: true, attributeFilter: ['hidden'] }));
     sync();
@@ -187,7 +203,7 @@ function setupPageSheetBodyClass() {
 
 function setupBottomNav() {
     const navCollection = document.getElementById('nav-collection');
-    if (navCollection) navCollection.addEventListener('click', () => navigateTo(null));
+    if (navCollection) navCollection.addEventListener('click', () => { closeAllPageSheets(); navigateTo(null); });
     // nav-write is wired by setupComposeModal(), nav-background by setupBackgroundModal(),
     // nav-history by setupAdminPanel(), nav-profile by setupProfileMenu()
 }
