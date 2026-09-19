@@ -145,7 +145,6 @@ function setupProfileMenu() {
     const trigger = document.getElementById('nav-profile');
     if (!page || !trigger) return;
 
-    const closeBtn = document.getElementById('profile-modal-close');
     const nameEl   = document.getElementById('profile-modal-name');
     const roleEl   = document.getElementById('profile-modal-role');
     const avatarLg = document.getElementById('profile-avatar-lg');
@@ -159,8 +158,6 @@ function setupProfileMenu() {
         closeAllPageSheets();
         page.hidden = false;
     });
-
-    closeBtn.addEventListener('click', () => { page.hidden = true; });
 }
 
 // Closes any open top-level page-sheet before switching to another one from the
@@ -367,7 +364,6 @@ function setupBackgroundModal() {
     const modal      = document.getElementById('modal-background');
     if (!btn || !modal) return;
 
-    const closeBtn    = document.getElementById('background-modal-close');
     const previewWrap = document.getElementById('bg-preview-wrap');
     const preview     = document.getElementById('bg-preview');
     const marker      = document.getElementById('bg-preview-marker');
@@ -492,12 +488,12 @@ function setupBackgroundModal() {
         reader.readAsDataURL(file);
     });
 
-    const closeModal = () => { modal.hidden = true; };
-    closeBtn.addEventListener('click', closeModal);
-
     saveBtn.addEventListener('click', async () => {
         const image = pendingDataUrl || currentSrc();
-        if (!image) { closeModal(); return; }
+        if (!image) {
+            if (errorEl) { errorEl.textContent = 'Choose a photo first.'; errorEl.hidden = false; }
+            return;
+        }
         saveBtn.disabled    = true;
         saveBtn.textContent = 'Saving…';
         try {
@@ -511,7 +507,6 @@ function setupBackgroundModal() {
             if (typeof fbAddBackgroundHistory === 'function') await fbAddBackgroundHistory(id, image, pendingPosition).catch(() => {});
 
             showToast('✓  Background updated');
-            closeModal();
         } finally {
             saveBtn.disabled    = false;
             saveBtn.textContent = 'Save';
@@ -716,7 +711,6 @@ function setupComposeModal() {
     const modal = document.getElementById('modal-compose');
     if (!btn || !modal) return;
 
-    const closeBtn    = document.getElementById('compose-modal-close');
     const titleInput  = document.getElementById('compose-title');
     const textInput   = document.getElementById('compose-text');
     const errorEl     = document.getElementById('compose-error');
@@ -732,9 +726,6 @@ function setupComposeModal() {
         setTimeout(() => titleInput.focus(), 60);
     };
     btn.addEventListener('click', openModal);
-
-    const closeModal = () => { modal.hidden = true; };
-    closeBtn.addEventListener('click', closeModal);
 
     const validate = () => {
         if (!textInput.value.trim()) {
@@ -772,7 +763,8 @@ function setupComposeModal() {
             const pdf   = await generateLetterPdf(title, textInput.value);
             await _saveLetterToVault(pdf, title);
             showToast('✓  Saved — hidden until you tap "Hidden" to allow others to see it');
-            closeModal();
+            titleInput.value = '';
+            textInput.value  = '';
         } catch (e) {
             console.error('[compose] save failed:', e);
             errorEl.textContent = 'Could not save to the vault: ' + (e?.message || 'unknown error');
@@ -1675,11 +1667,8 @@ function setupTrashModal() {
 function setupAdminPanel() {
     const btn      = document.getElementById('nav-history');
     const modal    = document.getElementById('modal-admin');
-    const closeBtn = document.getElementById('admin-modal-close');
     const listEl   = document.getElementById('admin-login-list');
     if (!btn || !modal) return;
-
-    const closeModal = () => { modal.hidden = true; };
 
     btn.addEventListener('click', async () => {
         closeAllPageSheets();
@@ -1711,8 +1700,6 @@ function setupAdminPanel() {
             </div>
         `).join('');
     });
-
-    closeBtn.addEventListener('click', closeModal);
 }
 
 function closeUploadModal() {
