@@ -666,15 +666,20 @@ header, main, footer, .gate-card {
 /* ── Page Sheets — full-screen destinations (Profile, Write, Background, History) ── */
 /* Unlike the compact modals below, these are primary destinations reached from the
    bottom nav, so they open as their own full page rather than a small popup dialog.
-   Left transparent (no solid background) so the wallpaper stays visible underneath,
-   matching the rest of the app's glass look; z-index sits below .bottom-nav so the
-   nav stays visible and usable while one of these pages is open. */
+   A translucent blurred glass panel (not solid, not fully transparent) — the wallpaper
+   still shows through softly, matching the rest of the app's glass look, but it's
+   opaque enough that the Trash page (which opens on top of Profile without closing
+   it) doesn't show Profile's content bleeding through underneath. z-index sits below
+   .bottom-nav so the nav stays visible and usable while one of these pages is open. */
 .page-sheet {
     position: fixed;
     inset: 0;
     z-index: 100;
     display: flex;
     flex-direction: column;
+    background: rgba(20, 11, 17, 0.93);
+    backdrop-filter: blur(32px) saturate(160%);
+    -webkit-backdrop-filter: blur(32px) saturate(160%);
 }
 
 /* While any page-sheet is open, hide the collection view underneath it — otherwise

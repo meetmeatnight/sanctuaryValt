@@ -534,8 +534,10 @@ function setupBackgroundModal() {
 const LETTER_PAGE_W = 400;
 const LETTER_PAGE_H = 700;
 const LETTER_MARGIN = 42;
-const LETTER_CREAM   = [238, 224, 208];
-const LETTER_AMBER   = [212, 168, 112];
+const LETTER_INK          = [74, 34, 42];   // deep wine — dark, legible ink on light paper
+const LETTER_AMBER        = [178, 124, 56]; // rose-gold accents (hearts, divider, frame)
+const LETTER_PAPER_TOP    = [253, 241, 236];
+const LETTER_PAPER_BOTTOM = [240, 206, 201];
 
 // Drawn, not typed — dingbat characters like ❧ aren't in the standard PDF fonts'
 // character set and render as garbage, so the ornament is a small vector heart instead.
@@ -552,69 +554,36 @@ function _drawHeart(doc, cx, cy, size, color) {
     );
 }
 
-function _dataUrlMimeToJsPdfFormat(dataUrl) {
-    const m = /^data:image\/(\w+)/.exec(dataUrl || '');
-    return m ? m[1].toUpperCase().replace('JPG', 'JPEG') : 'JPEG';
-}
-
-// Reuses whichever background is currently active (admin's custom one, or the bundled
-// default) so the letter looks like it belongs to the same site instead of a blank page.
-async function _loadCurrentBackgroundDataUrl() {
-    const custom = localStorage.getItem('sanctuary-custom-bg');
-    if (custom) return custom;
-    if (!CONFIG.backgroundImage) return null;
-    try {
-        const res = await fetch(CONFIG.backgroundImage);
-        if (!res.ok) return null;
-        const buf = await res.arrayBuffer();
-        const ext = CONFIG.backgroundImage.split('.').pop().toLowerCase();
-        return arrayBufferToDataUrl(buf, extToMime(ext));
-    } catch {
-        return null;
-    }
-}
-
-function _drawLetterPageBackground(doc, bgDataUrl) {
+// A soft romantic paper — blush-to-dusty-rose gradient with a thin rose-gold frame —
+// instead of the site's own photo, which made the text hard to read against whatever
+// busy image happened to be behind it. Ink is dark (LETTER_INK) for strong contrast.
+function _drawLetterPageBackground(doc) {
     const w = LETTER_PAGE_W, h = LETTER_PAGE_H;
-    if (bgDataUrl) {
-        try {
-            doc.addImage(bgDataUrl, _dataUrlMimeToJsPdfFormat(bgDataUrl), 0, 0, w, h, undefined, 'FAST');
-        } catch {
-            doc.setFillColor(26, 14, 22);
-            doc.rect(0, 0, w, h, 'F');
-        }
-    } else {
-        // No photo configured — a soft rose-to-dark gradient stands in for one.
-        const bands = 60;
-        for (let i = 0; i < bands; i++) {
-            const t = i / (bands - 1);
-            doc.setFillColor(
-                Math.round(90 + (14 - 90) * t),
-                Math.round(37 + (8  - 37) * t),
-                Math.round(53 + (16 - 53) * t)
-            );
-            doc.rect(0, (h / bands) * i, w, h / bands + 1, 'F');
-        }
+    const bands = 50;
+    for (let i = 0; i < bands; i++) {
+        const t = i / (bands - 1);
+        doc.setFillColor(
+            Math.round(LETTER_PAPER_TOP[0] + (LETTER_PAPER_BOTTOM[0] - LETTER_PAPER_TOP[0]) * t),
+            Math.round(LETTER_PAPER_TOP[1] + (LETTER_PAPER_BOTTOM[1] - LETTER_PAPER_TOP[1]) * t),
+            Math.round(LETTER_PAPER_TOP[2] + (LETTER_PAPER_BOTTOM[2] - LETTER_PAPER_TOP[2]) * t)
+        );
+        doc.rect(0, (h / bands) * i, w, h / bands + 1, 'F');
     }
-    // Dark veil for text contrast — the same treatment the site uses over its own background.
-    doc.saveGraphicsState();
-    doc.setGState(new doc.GState({ opacity: 0.6 }));
-    doc.setFillColor(14, 8, 16);
-    doc.rect(0, 0, w, h, 'F');
-    doc.restoreGraphicsState();
+    doc.setDrawColor(...LETTER_AMBER);
+    doc.setLineWidth(1);
+    doc.rect(14, 14, w - 28, h - 28);
 }
 
 async function generateLetterPdf(title, bodyText) {
     if (typeof window.jspdf === 'undefined') throw new Error('PDF library failed to load. Check your internet connection.');
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ unit: 'pt', format: [LETTER_PAGE_W, LETTER_PAGE_H] });
-    const bgDataUrl  = await _loadCurrentBackgroundDataUrl();
     const contentW   = LETTER_PAGE_W - LETTER_MARGIN * 2;
 
     let y = 0;
     const newPage = first => {
         if (!first) doc.addPage();
-        _drawLetterPageBackground(doc, bgDataUrl);
+        _drawLetterPageBackground(doc);
         y = LETTER_MARGIN;
     };
     newPage(true);
@@ -624,7 +593,7 @@ async function generateLetterPdf(title, bodyText) {
 
     doc.setFont('times', 'bolditalic');
     doc.setFontSize(24);
-    doc.setTextColor(...LETTER_CREAM);
+    doc.setTextColor(...LETTER_INK);
     doc.splitTextToSize(title || 'For You', contentW).forEach(line => {
         doc.text(line, LETTER_PAGE_W / 2, y, { align: 'center' });
         y += 30;
@@ -640,7 +609,7 @@ async function generateLetterPdf(title, bodyText) {
     const lineHeight    = bodyFontSize * 1.65;
     doc.setFont('times', 'normal');
     doc.setFontSize(bodyFontSize);
-    doc.setTextColor(...LETTER_CREAM);
+    doc.setTextColor(...LETTER_INK);
 
     (bodyText || '').split(/\n{2,}/).forEach(para => {
         doc.splitTextToSize(para.trim(), contentW).forEach(line => {
