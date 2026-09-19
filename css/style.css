@@ -295,33 +295,6 @@ header, main, footer, .gate-card {
 
 .brand-ornament { color: var(--amber); }
 
-.vault-header-actions {
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-}
-
-.profile-avatar-btn {
-    width: 38px;
-    height: 38px;
-    flex-shrink: 0;
-    border-radius: 50%;
-    background: linear-gradient(135deg, var(--rose) 0%, var(--rose-deep) 100%);
-    border: 1px solid var(--glass-edge);
-    color: var(--cream);
-    font-family: var(--font-d);
-    font-size: 0.95rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: transform 0.2s var(--ease-spring), box-shadow 0.2s var(--ease-spring);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25);
-}
-
-.profile-avatar-btn:hover { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 4px 14px rgba(139, 66, 85, 0.4); }
-.profile-avatar-btn:active { transform: scale(0.94); }
-
 .profile-modal-info {
     display: flex;
     align-items: center;
@@ -390,22 +363,6 @@ header, main, footer, .gate-card {
 .profile-menu-item-danger { color: #E88; }
 .profile-menu-item-danger:hover { border-color: rgba(200, 70, 70, 0.5); background: rgba(200, 70, 70, 0.1); }
 
-.logout-btn {
-    background: var(--glass);
-    border: 1px solid var(--glass-b);
-    border-radius: var(--r-pill);
-    color: var(--muted);
-    padding: 0.5rem 1.1rem;
-    min-height: 2.25rem;
-    font-family: var(--font-u);
-    font-size: 0.73rem;
-    letter-spacing: 0.07em;
-    cursor: pointer;
-    transition: all 0.2s var(--ease-spring);
-}
-
-.logout-btn:hover { color: var(--cream); background: var(--glass-hi); border-color: rgba(255, 255, 255, 0.28); }
-.logout-btn:active { transform: scale(0.96); }
 
 .vault-main {
     max-width: 1100px;
@@ -651,7 +608,7 @@ header, main, footer, .gate-card {
     z-index: 1;
 }
 
-/* ── Bottom Nav — floating glass pill, hidden on desktop ──────────────────── */
+/* ── Bottom Nav — floating "Liquid Glass" pill, hidden on desktop ─────────── */
 .bottom-nav {
     display: none;
     position: fixed;
@@ -660,14 +617,14 @@ header, main, footer, .gate-card {
     bottom: max(1rem, env(safe-area-inset-bottom));
     z-index: 20;
     align-items: center;
-    gap: 0.25rem;
-    background: rgba(34, 18, 25, 0.72);
-    backdrop-filter: blur(var(--glass-blur)) saturate(180%);
-    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(180%);
-    border: 1px solid var(--glass-edge);
+    gap: 0.15rem;
+    background: rgba(40, 22, 30, 0.32);
+    backdrop-filter: blur(28px) saturate(200%);
+    -webkit-backdrop-filter: blur(28px) saturate(200%);
+    border: 1px solid rgba(255, 255, 255, 0.16);
     border-radius: var(--r-pill);
-    box-shadow: 0 20px 45px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.12);
-    padding: 0.5rem;
+    box-shadow: 0 20px 45px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    padding: 0.45rem;
 }
 
 .bottom-nav-item {
@@ -682,19 +639,20 @@ header, main, footer, .gate-card {
     border-radius: var(--r-pill);
     color: var(--muted);
     font-family: var(--font-u);
-    font-size: 0.6rem;
-    letter-spacing: 0.03em;
-    padding: 0.45rem 0.2rem;
+    font-size: 0.56rem;
+    letter-spacing: 0.02em;
+    padding: 0.4rem 0.15rem;
     cursor: pointer;
     transition: color 0.2s var(--ease-spring), background 0.2s var(--ease-spring), transform 0.2s var(--ease-spring);
 }
 
-.bottom-nav-icon { font-size: 1.2rem; line-height: 1; }
+.bottom-nav-icon { display: flex; line-height: 1; }
+.bottom-nav-icon svg { width: 20px; height: 20px; }
 
 .bottom-nav-item.is-active {
     color: var(--amber);
-    background: rgba(212, 168, 112, 0.15);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    background: rgba(212, 168, 112, 0.18);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
 }
 
 .bottom-nav-item:active { transform: scale(0.94); }
@@ -704,6 +662,111 @@ header, main, footer, .gate-card {
     .vault-main { padding-bottom: calc(6rem + env(safe-area-inset-bottom)); }
     .vault-footer { display: none; } /* redundant once the bottom nav is present */
 }
+
+/* ── Page Sheets — full-screen destinations (Profile, Write, Background, History) ── */
+/* Unlike the compact modals below, these are primary destinations reached from the
+   bottom nav, so they open as their own full page rather than a small popup dialog. */
+.page-sheet {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    background: var(--surface);
+}
+
+.page-sheet-header {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    flex-shrink: 0;
+    padding: 1rem 1.25rem;
+    padding-top: max(1rem, env(safe-area-inset-top));
+    background: rgba(26, 14, 22, 0.75);
+    backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+    border-bottom: 1px solid var(--glass-b);
+}
+
+.page-sheet-back {
+    background: var(--glass);
+    border: 1px solid var(--glass-b);
+    border-radius: var(--r-pill);
+    color: var(--cream);
+    font-family: var(--font-u);
+    font-size: 0.78rem;
+    padding: 0.4rem 0.9rem;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.2s var(--ease-spring);
+}
+
+.page-sheet-back:hover { background: var(--glass-hi); }
+.page-sheet-back:active { transform: scale(0.95); }
+
+.page-sheet-title {
+    font-family: var(--font-d);
+    font-size: 1.15rem;
+    font-weight: 400;
+    color: var(--cream);
+    letter-spacing: 0.03em;
+}
+
+.page-sheet-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1.5rem 1.25rem;
+    padding-bottom: calc(6rem + env(safe-area-inset-bottom));
+    max-width: 560px;
+    width: 100%;
+    margin: 0 auto;
+}
+
+/* ── View toggle (grid / list) ─────────────────────────────────────────── */
+.view-toggle {
+    display: flex;
+    background: var(--glass);
+    border: 1px solid var(--glass-b);
+    border-radius: var(--r-pill);
+    padding: 0.2rem;
+    gap: 0.15rem;
+}
+
+.view-toggle-btn {
+    background: none;
+    border: none;
+    border-radius: var(--r-pill);
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    padding: 0.4rem 0.55rem;
+    cursor: pointer;
+    transition: background 0.2s var(--ease-spring), color 0.2s var(--ease-spring);
+}
+
+.view-toggle-btn svg { width: 16px; height: 16px; }
+.view-toggle-btn.is-active { background: var(--glass-hi); color: var(--amber); }
+
+/* ── List view — compact rows instead of big cards ────────────────────────── */
+.docs-grid.list-mode {
+    grid-template-columns: 1fr;
+    gap: 0.6rem;
+}
+
+.docs-grid.list-mode .doc-card { flex-direction: row; align-items: center; }
+
+.docs-grid.list-mode .card-cover {
+    width: 60px;
+    height: 60px;
+    aspect-ratio: 1;
+    flex-shrink: 0;
+}
+
+.docs-grid.list-mode .card-info { padding: 0.6rem 0.8rem; flex: 1; min-width: 0; }
+.docs-grid.list-mode .card-desc,
+.docs-grid.list-mode .cover-type { display: none; }
+.docs-grid.list-mode .card-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.docs-grid.list-mode .card-bg-btn { display: none; }
 
 .empty-state {
     grid-column: 1 / -1;
@@ -850,8 +913,6 @@ header, main, footer, .gate-card {
     /* Header */
     .vault-header       { padding: 0.75rem 1rem; padding-top: max(0.75rem, env(safe-area-inset-top)); }
     .vault-brand        { font-size: 0.88rem; }
-    .vault-header-actions { gap: 0.4rem; }
-    .logout-btn         { padding: 0.4rem 0.75rem; font-size: 0.7rem; min-height: 2rem; }
 
     /* Main */
     .vault-main         { padding: 1.5rem 0.9rem 3rem; }
@@ -928,6 +989,7 @@ header, main, footer, .gate-card {
 
 .vault-actions {
     display: flex;
+    flex-wrap: wrap;
     gap: 0.65rem;
     flex-shrink: 0;
     align-items: center;

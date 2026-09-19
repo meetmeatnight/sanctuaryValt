@@ -25,11 +25,6 @@
             <span class="brand-ornament">❧</span>
             <span class="brand-title">Our Sanctuary</span>
         </div>
-        <div class="vault-header-actions">
-            <button class="profile-avatar-btn profile-menu-toggle" id="btn-profile-avatar" aria-label="Account menu">
-                <span id="profile-avatar-initial">U</span>
-            </button>
-        </div>
     </header>
 
     <main class="vault-main">
@@ -40,6 +35,14 @@
                     <p class="vault-desc" id="vault-desc">Everything we keep, just for us.</p>
                 </div>
                 <div class="vault-actions">
+                    <div class="view-toggle" id="view-toggle">
+                        <button class="view-toggle-btn is-active" id="view-grid-btn" type="button" title="Grid view" aria-label="Grid view">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="8" rx="1.5"/><rect x="3" y="13" width="8" height="8" rx="1.5"/><rect x="13" y="13" width="8" height="8" rx="1.5"/></svg>
+                        </button>
+                        <button class="view-toggle-btn" id="view-list-btn" type="button" title="List view" aria-label="List view">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>
+                        </button>
+                    </div>
                     <button class="action-btn" id="btn-new-folder">+ New Folder</button>
                     <button class="action-btn" id="btn-compose">✍ Write</button>
                     <button class="action-btn action-btn-primary" id="btn-upload">↑ Upload</button>
@@ -62,15 +65,33 @@
     <!-- ── Bottom Nav (mobile only) ─────────────────────────── -->
     <nav class="bottom-nav" id="bottom-nav" aria-label="Primary">
         <button class="bottom-nav-item is-active" id="nav-collection">
-            <span class="bottom-nav-icon">🏠</span>
+            <span class="bottom-nav-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></svg>
+            </span>
             <span class="bottom-nav-label">Collection</span>
         </button>
         <button class="bottom-nav-item" id="nav-write" hidden>
-            <span class="bottom-nav-icon">✍</span>
+            <span class="bottom-nav-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+            </span>
             <span class="bottom-nav-label">Write</span>
         </button>
-        <button class="bottom-nav-item profile-menu-toggle" id="nav-profile">
-            <span class="bottom-nav-icon">👤</span>
+        <button class="bottom-nav-item" id="nav-background" hidden>
+            <span class="bottom-nav-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+            </span>
+            <span class="bottom-nav-label">Background</span>
+        </button>
+        <button class="bottom-nav-item" id="nav-history" hidden>
+            <span class="bottom-nav-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+            </span>
+            <span class="bottom-nav-label">History</span>
+        </button>
+        <button class="bottom-nav-item" id="nav-profile">
+            <span class="bottom-nav-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>
+            </span>
             <span class="bottom-nav-label">Profile</span>
         </button>
     </nav>
@@ -134,14 +155,13 @@
         </div>
     </div>
 
-    <!-- ── Profile Modal ────────────────────────────────────── -->
-    <div class="modal-overlay" id="modal-profile" hidden
-         role="dialog" aria-modal="true" aria-labelledby="modal-profile-title">
-        <div class="modal-card">
-            <div class="modal-head">
-                <h3 class="modal-title" id="modal-profile-title">Account</h3>
-                <button class="modal-close" type="button" id="profile-modal-close" aria-label="Close">✕</button>
-            </div>
+    <!-- ── Profile Page ─────────────────────────────────────── -->
+    <div class="page-sheet" id="modal-profile" hidden>
+        <div class="page-sheet-header">
+            <button class="page-sheet-back" type="button" id="profile-modal-close" aria-label="Back">← Back</button>
+            <h2 class="page-sheet-title">Account</h2>
+        </div>
+        <div class="page-sheet-body">
             <div class="profile-modal-info">
                 <div class="profile-avatar-lg" id="profile-avatar-lg">U</div>
                 <div>
@@ -150,21 +170,18 @@
                 </div>
             </div>
             <div class="profile-menu-items">
-                <button class="profile-menu-item" id="btn-background" hidden>🖼&nbsp;&nbsp;Background</button>
-                <button class="profile-menu-item" id="btn-admin-panel" hidden>🕘&nbsp;&nbsp;Login History</button>
                 <button class="profile-menu-item profile-menu-item-danger" onclick="logout()">↪&nbsp;&nbsp;Sign out</button>
             </div>
         </div>
     </div>
 
-    <!-- ── Compose Letter Modal ─────────────────────────────── -->
-    <div class="modal-overlay" id="modal-compose" hidden
-         role="dialog" aria-modal="true" aria-labelledby="modal-compose-title">
-        <div class="modal-card modal-card-wide">
-            <div class="modal-head">
-                <h3 class="modal-title" id="modal-compose-title">Write a Letter</h3>
-                <button class="modal-close" type="button" id="compose-modal-close" aria-label="Close">✕</button>
-            </div>
+    <!-- ── Compose Letter Page ──────────────────────────────── -->
+    <div class="page-sheet" id="modal-compose" hidden>
+        <div class="page-sheet-header">
+            <button class="page-sheet-back" type="button" id="compose-modal-close" aria-label="Back">← Back</button>
+            <h2 class="page-sheet-title">Write a Letter</h2>
+        </div>
+        <div class="page-sheet-body">
             <div class="modal-field">
                 <label class="modal-label" for="compose-title">Title</label>
                 <input type="text" id="compose-title" class="modal-input"
@@ -180,6 +197,18 @@
                 <button class="modal-btn" id="compose-download">Download PDF</button>
                 <button class="modal-btn modal-btn-primary" id="compose-save">Save to Vault</button>
             </div>
+        </div>
+    </div>
+
+    <!-- ── Move Document Modal ──────────────────────────────── -->
+    <div class="modal-overlay" id="modal-move" hidden
+         role="dialog" aria-modal="true" aria-labelledby="modal-move-title">
+        <div class="modal-card">
+            <div class="modal-head">
+                <h3 class="modal-title" id="modal-move-title">Move to…</h3>
+                <button class="modal-close" type="button" id="move-modal-close" aria-label="Close">✕</button>
+            </div>
+            <div class="profile-menu-items" id="move-folder-list"></div>
         </div>
     </div>
 
@@ -205,28 +234,26 @@
         </div>
     </div>
 
-    <!-- ── Admin Panel Modal (login history) ─────────────── -->
-    <div class="modal-overlay" id="modal-admin" hidden
-         role="dialog" aria-modal="true" aria-labelledby="modal-admin-title">
-        <div class="modal-card modal-card-wide">
-            <div class="modal-head">
-                <h3 class="modal-title" id="modal-admin-title">Login History</h3>
-                <button class="modal-close" type="button" id="admin-modal-close" aria-label="Close">✕</button>
-            </div>
+    <!-- ── Login History Page ───────────────────────────────── -->
+    <div class="page-sheet" id="modal-admin" hidden>
+        <div class="page-sheet-header">
+            <button class="page-sheet-back" type="button" id="admin-modal-close" aria-label="Back">← Back</button>
+            <h2 class="page-sheet-title">Login History</h2>
+        </div>
+        <div class="page-sheet-body">
             <div class="admin-login-list" id="admin-login-list">
                 <p class="loading-msg">Loading login history…</p>
             </div>
         </div>
     </div>
 
-    <!-- ── Background Modal ────────────────────────────────── -->
-    <div class="modal-overlay" id="modal-background" hidden
-         role="dialog" aria-modal="true" aria-labelledby="modal-background-title">
-        <div class="modal-card">
-            <div class="modal-head">
-                <h3 class="modal-title" id="modal-background-title">Site Background</h3>
-                <button class="modal-close" type="button" id="background-modal-close" aria-label="Close">✕</button>
-            </div>
+    <!-- ── Background Page ──────────────────────────────────── -->
+    <div class="page-sheet" id="modal-background" hidden>
+        <div class="page-sheet-header">
+            <button class="page-sheet-back" type="button" id="background-modal-close" aria-label="Back">← Back</button>
+            <h2 class="page-sheet-title">Site Background</h2>
+        </div>
+        <div class="page-sheet-body">
             <div class="modal-field">
                 <label class="modal-label">Current background</label>
                 <div class="bg-preview-wrap" id="bg-preview-wrap">

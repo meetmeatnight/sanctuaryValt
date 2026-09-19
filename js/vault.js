@@ -41,10 +41,12 @@ async function initVault() {
     try { setupUploadModal();     } catch (e) { console.error('[init] setupUploadModal:', e); }
     try { setupComposeModal();    } catch (e) { console.error('[init] setupComposeModal:', e); }
     try { setupDeleteModal();     } catch (e) { console.error('[init] setupDeleteModal:', e); }
+    try { setupMoveModal();       } catch (e) { console.error('[init] setupMoveModal:', e); }
     try { setupAdminPanel();      } catch (e) { console.error('[init] setupAdminPanel:', e); }
     try { setupBackgroundModal(); } catch (e) { console.error('[init] setupBackgroundModal:', e); }
     try { setupProfileMenu();     } catch (e) { console.error('[init] setupProfileMenu:', e); }
     try { setupBottomNav();       } catch (e) { console.error('[init] setupBottomNav:', e); }
+    try { setupViewToggle();      } catch (e) { console.error('[init] setupViewToggle:', e); }
     applyRolePermissions();
     logLoginOnce();
     renderBreadcrumb();
@@ -98,52 +100,42 @@ async function initVault() {
 
 function applyRolePermissions() {
     const admin = isAdmin();
-    const btnFolder  = document.getElementById('btn-new-folder');
-    const btnUpload  = document.getElementById('btn-upload');
-    const btnCompose = document.getElementById('btn-compose');
-    const btnAdmin   = document.getElementById('btn-admin-panel');
-    const btnBg      = document.getElementById('btn-background');
-    const navWrite   = document.getElementById('nav-write');
+    const btnFolder    = document.getElementById('btn-new-folder');
+    const btnUpload    = document.getElementById('btn-upload');
+    const btnCompose   = document.getElementById('btn-compose');
+    const navWrite     = document.getElementById('nav-write');
+    const navBg        = document.getElementById('nav-background');
+    const navHistory   = document.getElementById('nav-history');
     if (btnFolder)  btnFolder.hidden  = !admin;
     if (btnUpload)  btnUpload.hidden  = !admin;
     if (btnCompose) btnCompose.hidden = !admin;
-    if (btnAdmin)   btnAdmin.hidden   = !admin;
-    if (btnBg)      btnBg.hidden      = !admin;
     if (navWrite)   navWrite.hidden   = !admin;
+    if (navBg)      navBg.hidden      = !admin;
+    if (navHistory) navHistory.hidden = !admin;
 }
 
-// ── Profile menu (avatar in the header, or the Profile tab on mobile) ───────
-// Both triggers open the same modal — a modal works regardless of which one
-// fired it, unlike a corner dropdown that would need separate positioning logic.
+// ── Profile page (opened from the bottom nav's Profile tab) ─────────────────
 
 function setupProfileMenu() {
-    const modal = document.getElementById('modal-profile');
-    const toggles = document.querySelectorAll('.profile-menu-toggle');
-    if (!modal || !toggles.length) return;
+    const page = document.getElementById('modal-profile');
+    const trigger = document.getElementById('nav-profile');
+    if (!page || !trigger) return;
 
     const closeBtn = document.getElementById('profile-modal-close');
     const nameEl   = document.getElementById('profile-modal-name');
     const roleEl   = document.getElementById('profile-modal-role');
-    const avatarSm = document.getElementById('profile-avatar-initial');
     const avatarLg = document.getElementById('profile-avatar-lg');
 
     const initial = (getLoginName() || '').trim().charAt(0).toUpperCase() || (isAdmin() ? 'A' : 'U');
-    if (avatarSm) avatarSm.textContent = initial;
     if (avatarLg) avatarLg.textContent = initial;
 
-    const openModal = () => {
+    trigger.addEventListener('click', () => {
         if (nameEl) nameEl.textContent = getLoginName() || (isAdmin() ? 'Admin' : 'Guest');
         if (roleEl) roleEl.textContent = isAdmin() ? 'Admin' : 'Viewer';
-        modal.hidden = false;
-    };
-    toggles.forEach(t => t.addEventListener('click', openModal));
-
-    const closeModal = () => { modal.hidden = true; };
-    closeBtn.addEventListener('click', closeModal);
-    modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
-    modal.querySelectorAll('.profile-menu-item').forEach(item => {
-        item.addEventListener('click', closeModal);
+        page.hidden = false;
     });
+
+    closeBtn.addEventListener('click', () => { page.hidden = true; });
 }
 
 // ── Bottom Nav (mobile only — hidden on desktop via CSS) ────────────────────
@@ -152,8 +144,30 @@ function setupBottomNav() {
     const navCollection = document.getElementById('nav-collection');
     const navWrite      = document.getElementById('nav-write');
     if (navCollection) navCollection.addEventListener('click', () => navigateTo(null));
+    // nav-write opens the same page as the hero's "Write" button
     if (navWrite) navWrite.addEventListener('click', () => document.getElementById('btn-compose')?.click());
-    // nav-profile is wired generically by setupProfileMenu() via the .profile-menu-toggle class
+    // nav-background / nav-history trigger setupBackgroundModal()/setupAdminPanel() directly
+    // nav-profile is wired by setupProfileMenu()
+}
+
+// ── View toggle (grid / list) — a personal display preference, not role-gated ──
+
+function setupViewToggle() {
+    const gridBtn = document.getElementById('view-grid-btn');
+    const listBtn = document.getElementById('view-list-btn');
+    const grid    = document.getElementById('docs-grid');
+    if (!gridBtn || !listBtn || !grid) return;
+
+    const apply = mode => {
+        grid.classList.toggle('list-mode', mode === 'list');
+        gridBtn.classList.toggle('is-active', mode === 'grid');
+        listBtn.classList.toggle('is-active', mode === 'list');
+        localStorage.setItem('sanctuary-view-mode', mode);
+    };
+
+    gridBtn.addEventListener('click', () => apply('grid'));
+    listBtn.addEventListener('click', () => apply('list'));
+    apply(localStorage.getItem('sanctuary-view-mode') === 'list' ? 'list' : 'grid');
 }
 
 // Records this session's login (name, role, device, IP, location) once, for the admin login-history panel.
@@ -291,7 +305,7 @@ function _upsertBackgroundHistory(image, position) {
 }
 
 function setupBackgroundModal() {
-    const btn        = document.getElementById('btn-background');
+    const btn        = document.getElementById('nav-background');
     const modal      = document.getElementById('modal-background');
     if (!btn || !modal) return;
 
@@ -421,7 +435,6 @@ function setupBackgroundModal() {
 
     const closeModal = () => { modal.hidden = true; };
     closeBtn.addEventListener('click', closeModal);
-    modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
 
     saveBtn.addEventListener('click', async () => {
         const image = pendingDataUrl || currentSrc();
@@ -662,7 +675,6 @@ function setupComposeModal() {
 
     const closeModal = () => { modal.hidden = true; };
     closeBtn.addEventListener('click', closeModal);
-    modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
 
     const validate = () => {
         if (!textInput.value.trim()) {
@@ -796,7 +808,7 @@ function renderGrid() {
     });
     grid.querySelectorAll('.doc-card').forEach(card => {
         card.addEventListener('click', e => {
-            if (e.target.closest('.card-action-del') || e.target.closest('.card-action-visibility')) return;
+            if (e.target.closest('.card-action-del') || e.target.closest('.card-action-visibility') || e.target.closest('.card-action-move')) return;
             openDoc(card.dataset.docId);
         });
     });
@@ -808,6 +820,9 @@ function renderGrid() {
     });
     grid.querySelectorAll('.card-action-visibility[data-doc-id]').forEach(btn => {
         btn.addEventListener('click', e => { e.stopPropagation(); toggleDocVisibility(btn.dataset.docId); });
+    });
+    grid.querySelectorAll('.card-action-move[data-doc-id]').forEach(btn => {
+        btn.addEventListener('click', e => { e.stopPropagation(); openMoveModal(btn.dataset.docId); });
     });
 }
 
@@ -875,6 +890,7 @@ function renderDocCard(doc) {
                     ${!doc._static && admin ? `
                         <div class="card-actions">
                             <button class="card-action-btn card-action-visibility${hidden ? ' is-hidden' : ''}" data-doc-id="${escHtml(doc.id)}" title="Toggle visibility for the regular login">${hidden ? '🙈 Hidden' : '👁 Shown'}</button>
+                            <button class="card-action-btn card-action-move" data-doc-id="${escHtml(doc.id)}" title="Move to another folder">📁 Move</button>
                             <button class="card-action-btn card-action-del" data-doc-id="${escHtml(doc.id)}">Delete</button>
                         </div>
                     ` : ''}
@@ -935,8 +951,8 @@ function setupFolderModal() {
 // Generated once at upload time (not on every render) and cached on the doc,
 // so opening the vault never has to decrypt/render full files just to show a grid.
 
-const THUMB_MAX_DIM = 220;
-const THUMB_QUALITY = 0.55;
+const THUMB_MAX_DIM = 420;
+const THUMB_QUALITY = 0.78;
 
 async function _generateThumbnail(plainBuf, ext) {
     if (IMAGE_TYPES.has(ext)) return _thumbFromImage(plainBuf, ext);
@@ -1263,6 +1279,50 @@ function toggleFolderVisibility(folderId) {
     showToast(folder.visible ? 'Now visible to everyone' : 'Hidden from others');
 }
 
+// ── Move (relocate a document to a different folder) ────────────────────────
+
+let _pendingMoveDocId = null;
+
+function openMoveModal(docId) {
+    const doc = vaultMeta.documents.find(d => d.id === docId);
+    if (!doc) return;
+    _pendingMoveDocId = docId;
+
+    const list = document.getElementById('move-folder-list');
+    const options = [{ id: null, name: '— Root —' }, ...vaultMeta.folders.map(f => ({ id: f.id, name: f.name }))]
+        .filter(o => o.id !== doc.folderId);
+
+    if (!options.length) {
+        list.innerHTML = '<p class="bg-history-empty">No other location yet — create a folder first.</p>';
+    } else {
+        list.innerHTML = options.map(o => `
+            <button class="profile-menu-item" data-fid="${o.id === null ? '' : escHtml(o.id)}">${o.id === null ? '📂' : '📁'}&nbsp;&nbsp;${escHtml(o.name)}</button>
+        `).join('');
+        list.querySelectorAll('button[data-fid]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const target = vaultMeta.documents.find(d => d.id === _pendingMoveDocId);
+                if (target) {
+                    target.folderId = btn.dataset.fid || null;
+                    saveVaultMeta(vaultMeta);
+                    renderGrid();
+                    showToast('✓  Moved');
+                }
+                document.getElementById('modal-move').hidden = true;
+            });
+        });
+    }
+    document.getElementById('modal-move').hidden = false;
+}
+
+function setupMoveModal() {
+    const modal    = document.getElementById('modal-move');
+    const closeBtn = document.getElementById('move-modal-close');
+    if (!modal || !closeBtn) return;
+    const closeModal = () => { modal.hidden = true; _pendingMoveDocId = null; };
+    closeBtn.addEventListener('click', closeModal);
+    modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
+}
+
 // ── Delete ────────────────────────────────────────────────────────────────────
 
 let _pendingDelete = null; // { type: 'doc'|'folder', id }
@@ -1387,7 +1447,7 @@ async function _deleteFolderContents(folderId) {
 // ── Admin Panel (login history) ──────────────────────────────────────────────
 
 function setupAdminPanel() {
-    const btn      = document.getElementById('btn-admin-panel');
+    const btn      = document.getElementById('nav-history');
     const modal    = document.getElementById('modal-admin');
     const closeBtn = document.getElementById('admin-modal-close');
     const listEl   = document.getElementById('admin-login-list');
@@ -1426,7 +1486,6 @@ function setupAdminPanel() {
     });
 
     closeBtn.addEventListener('click', closeModal);
-    modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
 }
 
 function closeUploadModal() {
