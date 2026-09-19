@@ -367,7 +367,11 @@ header, main, footer, .gate-card {
 .vault-main {
     max-width: 1100px;
     margin: 0 auto;
-    padding: 3rem 2rem 4rem;
+    padding: 3rem 2rem;
+    /* Extra room so the floating bottom nav never covers the last row of cards —
+       set once here rather than per breakpoint, since a shorthand `padding: a b c`
+       in a narrower media query would silently reset this back down otherwise. */
+    padding-bottom: calc(6rem + env(safe-area-inset-bottom));
 }
 
 .vault-hero {
@@ -595,25 +599,17 @@ header, main, footer, .gate-card {
     letter-spacing: 0.04em;
 }
 
-.vault-footer {
-    text-align: center;
-    padding: 2rem;
-    padding-bottom: max(2rem, env(safe-area-inset-bottom));
-    font-family: var(--font-u);
-    font-size: 0.7rem;
-    color: var(--muted);
-    letter-spacing: 0.07em;
-    opacity: 0.45;
-    position: relative;
-    z-index: 1;
-}
-
-/* ── Bottom Nav — floating "Liquid Glass" pill, hidden on desktop ─────────── */
+/* ── Bottom Nav — floating "Liquid Glass" pill ──────────────────────────────── */
+/* Write/Background/History/Profile only live here now (no top-bar equivalent),
+   so this has to stay visible and reachable on every screen size, not just mobile —
+   capped to a comfortable width and centered rather than stretched edge-to-edge
+   once there's room to spare. */
 .bottom-nav {
-    display: none;
+    display: flex;
     position: fixed;
-    left: 1rem;
-    right: 1rem;
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(440px, calc(100% - 2rem));
     bottom: max(1rem, env(safe-area-inset-bottom));
     z-index: 110;
     align-items: center;
@@ -657,12 +653,6 @@ header, main, footer, .gate-card {
 
 .bottom-nav-item:active { transform: scale(0.94); }
 
-@media (max-width: 768px) {
-    .bottom-nav { display: flex; }
-    .vault-main { padding-bottom: calc(6rem + env(safe-area-inset-bottom)); }
-    .vault-footer { display: none; } /* redundant once the bottom nav is present */
-}
-
 /* ── Page Sheets — full-screen destinations (Profile, Write, Background, History) ── */
 /* Unlike the compact modals below, these are primary destinations reached from the
    bottom nav, so they open as their own full page rather than a small popup dialog.
@@ -689,10 +679,9 @@ header, main, footer, .gate-card {
 /* While any page-sheet is open, hide the collection view underneath it — otherwise
    its buttons/text would visibly overlap the page-sheet's own content, since the
    page-sheet itself is intentionally transparent (see above). The wallpaper (.bg-layer)
-   and .bottom-nav sit outside header/main/footer, so they're unaffected and stay visible. */
+   and .bottom-nav sit outside header/main, so they're unaffected and stay visible. */
 body.sheet-open header,
-body.sheet-open main,
-body.sheet-open .vault-footer {
+body.sheet-open main {
     display: none;
 }
 
@@ -925,7 +914,7 @@ body.sheet-open .vault-footer {
 
 /* Tablet */
 @media (max-width: 900px) {
-    .vault-main         { padding: 2.5rem 1.5rem 3.5rem; }
+    .vault-main         { padding-top: 2.5rem; padding-left: 1.5rem; padding-right: 1.5rem; }
     .docs-grid          { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
 }
 
@@ -936,7 +925,7 @@ body.sheet-open .vault-footer {
     .vault-brand        { font-size: 0.88rem; }
 
     /* Main */
-    .vault-main         { padding: 1.5rem 0.9rem calc(6rem + env(safe-area-inset-bottom)); }
+    .vault-main         { padding-top: 1.5rem; padding-left: 0.9rem; padding-right: 0.9rem; }
     .vault-hero         { margin-bottom: 1.75rem; padding-bottom: 1.25rem; }
 
     /* Hero top — stack vertically, full-width buttons */
@@ -982,7 +971,7 @@ body.sheet-open .vault-footer {
 
 /* Small phones — single column */
 @media (max-width: 400px) {
-    .vault-main         { padding: 1.25rem 0.75rem calc(6rem + env(safe-area-inset-bottom)); }
+    .vault-main         { padding-top: 1.25rem; padding-left: 0.75rem; padding-right: 0.75rem; }
     .docs-grid          { grid-template-columns: 1fr; }
     .modal-overlay      { padding: 0.75rem; }
 }
