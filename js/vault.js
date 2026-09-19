@@ -45,6 +45,7 @@ async function initVault() {
     try { setupDeleteModal();     } catch (e) { console.error('[init] setupDeleteModal:', e); }
     try { setupMoveModal();       } catch (e) { console.error('[init] setupMoveModal:', e); }
     try { setupTrashModal();      } catch (e) { console.error('[init] setupTrashModal:', e); }
+    try { setupPageSheetBodyClass(); } catch (e) { console.error('[init] setupPageSheetBodyClass:', e); }
     try { setupAdminPanel();      } catch (e) { console.error('[init] setupAdminPanel:', e); }
     try { setupBackgroundModal(); } catch (e) { console.error('[init] setupBackgroundModal:', e); }
     try { setupProfileMenu();     } catch (e) { console.error('[init] setupProfileMenu:', e); }
@@ -157,10 +158,31 @@ function setupProfileMenu() {
     trigger.addEventListener('click', () => {
         if (nameEl) nameEl.textContent = getLoginName() || (isAdmin() ? 'Admin' : 'Guest');
         if (roleEl) roleEl.textContent = isAdmin() ? 'Admin' : 'Viewer';
+        closeAllPageSheets();
         page.hidden = false;
     });
 
     closeBtn.addEventListener('click', () => { page.hidden = true; });
+}
+
+// Closes any open top-level page-sheet before switching to another one from the
+// bottom nav, so only one is ever showing (the Trash page, opened from inside
+// Profile rather than the nav, is intentionally left alone by this).
+function closeAllPageSheets() {
+    document.querySelectorAll('.page-sheet').forEach(el => { el.hidden = true; });
+}
+
+// Keeps body.sheet-open in sync with whether any .page-sheet is currently visible
+// (see the CSS rule it drives), regardless of which one opened or closed it —
+// covers Trash opening/closing on top of Profile too, not just the nav-level sheets.
+function setupPageSheetBodyClass() {
+    const sheets = document.querySelectorAll('.page-sheet');
+    const sync = () => {
+        const anyOpen = Array.from(sheets).some(el => !el.hidden);
+        document.body.classList.toggle('sheet-open', anyOpen);
+    };
+    sheets.forEach(el => new MutationObserver(sync).observe(el, { attributes: true, attributeFilter: ['hidden'] }));
+    sync();
 }
 
 // ── Bottom Nav (mobile only — hidden on desktop via CSS) ────────────────────
@@ -431,6 +453,7 @@ function setupBackgroundModal() {
             || (currentSrc() === CONFIG.backgroundImage ? (CONFIG.backgroundPosition || 'center') : 'center');
         setMarker(pendingPosition);
         renderHistory();
+        closeAllPageSheets();
         modal.hidden = false;
     };
     btn.addEventListener('click', openModal);
@@ -693,6 +716,7 @@ function setupComposeModal() {
         titleInput.value = '';
         textInput.value  = '';
         if (errorEl) errorEl.hidden = true;
+        closeAllPageSheets();
         modal.hidden = false;
         setTimeout(() => titleInput.focus(), 60);
     };
@@ -1647,6 +1671,7 @@ function setupAdminPanel() {
     const closeModal = () => { modal.hidden = true; };
 
     btn.addEventListener('click', async () => {
+        closeAllPageSheets();
         modal.hidden = false;
         listEl.innerHTML = '<p class="loading-msg">Loading login history…</p>';
 

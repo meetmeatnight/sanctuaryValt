@@ -615,7 +615,7 @@ header, main, footer, .gate-card {
     left: 1rem;
     right: 1rem;
     bottom: max(1rem, env(safe-area-inset-bottom));
-    z-index: 20;
+    z-index: 110;
     align-items: center;
     gap: 0.15rem;
     background: rgba(40, 22, 30, 0.32);
@@ -665,14 +665,26 @@ header, main, footer, .gate-card {
 
 /* ── Page Sheets — full-screen destinations (Profile, Write, Background, History) ── */
 /* Unlike the compact modals below, these are primary destinations reached from the
-   bottom nav, so they open as their own full page rather than a small popup dialog. */
+   bottom nav, so they open as their own full page rather than a small popup dialog.
+   Left transparent (no solid background) so the wallpaper stays visible underneath,
+   matching the rest of the app's glass look; z-index sits below .bottom-nav so the
+   nav stays visible and usable while one of these pages is open. */
 .page-sheet {
     position: fixed;
     inset: 0;
     z-index: 100;
     display: flex;
     flex-direction: column;
-    background: var(--surface);
+}
+
+/* While any page-sheet is open, hide the collection view underneath it — otherwise
+   its buttons/text would visibly overlap the page-sheet's own content, since the
+   page-sheet itself is intentionally transparent (see above). The wallpaper (.bg-layer)
+   and .bottom-nav sit outside header/main/footer, so they're unaffected and stay visible. */
+body.sheet-open header,
+body.sheet-open main,
+body.sheet-open .vault-footer {
+    display: none;
 }
 
 .page-sheet-header {
